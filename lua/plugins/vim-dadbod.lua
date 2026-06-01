@@ -20,22 +20,22 @@ return {
         vim.g.dbs = { -- Set up database connection configurations
             {
                 name = 'university',
-                url = 'postgres://minhbui:849420@localhost:5432/university'
+                url = 'postgres://minhbui:******@localhost:5432/university'
             },
 
             {
                 name = '_university',
-                url = 'postgres://minhbui:849420@localhost:5432/_university'
+                url = 'postgres://minhbui:******@localhost:5432/_university'
             },
         }
     end
 }
 
--- postgres://postgres:849420@localhost:5432/university
+-- postgres://postgres:******@localhost:5432/university
 -- |       |        |        |         |       |
 -- |       |        |        |         |       └── Database name = university
 -- |       |        |        |         └──────── Port = 5432
 -- |       |        |        └────────────────── Host = localhost
--- |       |        └─────────────────────────── Password = 849420
+-- |       |        └─────────────────────────── Password = ******
 -- |       └──────────────────────────────────── Username = postgres
 -- └──────────────────────────────────────────── Protocol = postgres

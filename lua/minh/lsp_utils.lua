@@ -31,9 +31,14 @@ M.setup_ui = function()
         update_in_insert = false,
         float = {
             border = border,
-            source = "always", -- show diagnostic source [cite: 2]
+            source = "always", -- show diagnostic source
         },
     })
+
+    -- Only underline symbol under cursor
+    vim.api.nvim_set_hl(0, "LspReferenceText", { bg = "NONE", fg = "NONE", underline = true })
+    vim.api.nvim_set_hl(0, "LspReferenceRead", { bg = "NONE", fg = "NONE", underline = true })
+    vim.api.nvim_set_hl(0, "LspReferenceWrite", { bg = "NONE", fg = "NONE", underline = true })
 end
 
 --- Highlight symbol under cursor
@@ -91,7 +96,7 @@ local function setup_auto_signature(client, bufnr)
         buffer = bufnr,
         callback = function()
             if check_triggeredChars(triggerChars) then
-                vim.lsp.buf.signature_help({ focus = false, silent = true, max_height = 7, border = "rounded" })
+                vim.lsp.buf.signature_help({ focus = false, silent = true, max_height = 10, border = "rounded" })
             end
         end,
     })

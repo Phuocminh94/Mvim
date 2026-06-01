@@ -16,11 +16,13 @@ opt.signcolumn     = "yes"          -- Always show signcolumn (stops text "jumpi
 opt.colorcolumn    = "80"           -- Vertical line at 80 chars
 opt.fillchars      = { eob = " " }  -- Hide the '~' on empty lines at end of buffer
 opt.mouse          = "a"            -- Enable mouse support
+opt.updatetime     = 300            -- Faster completion and plugin responsiveness (default is 4000ms)
 
 -- Search Settings
 opt.ignorecase     = true           -- Case insensitive search...
 opt.smartcase      = true           -- ...unless capital letters are used
 opt.grepprg        = "rg --vimgrep --no-heading --smart-case" -- Use Ripgrep for searching
+opt.incsearch      = true
 
 -- Tabs & Indentation (The 2-space standard)
 opt.tabstop        = 2 

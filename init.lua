@@ -15,7 +15,10 @@ require("minh.autocmd")
 require("lazy_cf")
 
 -- UI Components
-vim.cmd.colorscheme('neovim')
+local ok, _ = pcall(require, "plugins.theme")
+if not ok then
+  vim.cmd.colorscheme('neovim')
+end
 
 require("minh.statusline").setup()
 require("minh.tabline").setup()

@@ -12,7 +12,7 @@ return {
          ╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝           
     ]]
 
-    logo = string.rep("\n", 5) .. logo .. "\n"
+    logo = string.rep("\n", 8) .. logo .. "\n\n"
 
     local opts = {
       theme = "doom",
@@ -29,8 +29,9 @@ return {
           { action = "ene | startinsert", desc = " New File", icon = " ", key = "n" },
           { 
             action = function() 
+              local theme = require("telescope.themes").get_dropdown()
               require('telescope').load_extension('projects')
-              require("telescope").extensions.projects.projects({}) 
+              require("telescope").extensions.projects.projects(theme)
             end, 
             desc = " Projects", 
             icon = " ", 
@@ -40,7 +41,6 @@ return {
           { action = 'Telescope live_grep', desc = " Find Text", icon = " ", key = "g" },
           {
             action = function()
-              local theme = require("telescope.themes").get_ivy()
               require("telescope.builtin").find_files({cwd=vim.fn.stdpath('config')})
             end,
             desc = " Find Configs",
