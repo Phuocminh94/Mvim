@@ -1,7 +1,7 @@
 -- My Essential Neovim Options --
 
 -- Globals
-vim.g.note_path = ""
+if not pcall(require, "minh/local_config") then vim.g.note_path = "" end
 vim.g.loaded_netrw = 1              -- Disable netrw at the very start
 vim.g.loaded_netrwPlugin = 1
 

@@ -91,7 +91,7 @@ map("v", "<leader>s", ":sort /^\\s*/<CR>", "Sort lines")
 
 -- Utilities
 map("n", "<leader>md", "<cmd>MarkdownPreviewToggle<CR>", "Toggle Markdown Preview")
-map({ "n", "t" }, "<C-/>", function()
+map({ "n", "t" }, "<A-/>", function() -- <C-/> conflicts with Tmux
 	local opts = vim.fn.has("win32") == 1 and { cmd = "powershell" } or {}
 	require("minh.terminal").toggle(nil, opts)
 end, "Toggle Floatterm")
@@ -139,6 +139,12 @@ map("n", "<leader>fp", function()
 	require("telescope").load_extension("projects")
 	require("telescope").extensions.projects.projects(theme)
 end, "Find projects")
+
+map("n", "<leader>fn", function()
+  require("telescope.builtin").find_files({cwd=vim.g.note_path})
+end, "Find mNote")
+
+
 
 -------------------------------------------------------------------------------
 -- LSP & DIAGNOSTICS (Autocmd controlled)

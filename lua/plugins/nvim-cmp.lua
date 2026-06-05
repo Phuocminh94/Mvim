@@ -28,7 +28,7 @@ return {
 		require("luasnip.loaders.from_vscode").lazy_load()
 
 		cmp.setup({
-      -- See also minh.lsp_util for the signature panel UI
+			-- See also minh.lsp_util for the signature panel UI
 			window = {
 				completion = cmp.config.window.bordered({ border = "rounded" }),
 				documentation = cmp.config.window.bordered({ border = "rounded" }),
@@ -45,7 +45,7 @@ return {
 					if cmp.visible_docs() then
 						cmp.scroll_docs(-4)
 					else
-            -- Find and scroll the LSP floating window (Signature Help) forward (@Gemini)
+						-- Find and scroll the LSP floating window (Signature Help) forward (@Gemini)
 						for _, win in ipairs(vim.api.nvim_list_wins()) do
 							if vim.api.nvim_win_get_config(win).relative ~= "" then
 								vim.fn.win_execute(win, "normal! \x02") -- \x02 tương đương <C-b>
@@ -59,7 +59,7 @@ return {
 					if cmp.visible_docs() then
 						cmp.scroll_docs(4)
 					else
-            -- Find and scroll the LSP floating window (Signature Help) forward (@Gemini)
+						-- Find and scroll the LSP floating window (Signature Help) forward (@Gemini)
 						for _, win in ipairs(vim.api.nvim_list_wins()) do
 							if vim.api.nvim_win_get_config(win).relative ~= "" then
 								vim.fn.win_execute(win, "normal! \x06") -- \x06 tương đương <C-f>
