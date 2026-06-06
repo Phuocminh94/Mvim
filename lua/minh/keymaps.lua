@@ -1,4 +1,4 @@
--- 1. Global Map Helper (Used for general mappings)
+-- Global Map Helper (Used for general mappings)
 local function map(mode, lhs, rhs, desc, opts)
 	local options = { desc = desc, silent = true }
 	if opts then
@@ -98,53 +98,29 @@ end, "Toggle Floatterm")
 map("n", "<A-c>", "<cmd>ColorizerToggle<CR>", "Toggle Colorizer")
 map("n", "<leader>p", "<cmd>PasteImage<CR>", "Paste Image (img-clip)")
 
--- Telescope
-local ivy_config = {
-	layout_config = { preview_width = 0.6 },
-}
+-------------------------------------------------------------------------------
+-- SNACKS PICKER
+-------------------------------------------------------------------------------
+map("n", "<leader>ff", function() Snacks.picker.files({ layout = "sidebar" }) end, "Find Files")
 
-map("n", "<leader>ff", function()
-	require("telescope.builtin").find_files(require("telescope.themes").get_ivy(ivy_config), "Find Files")
-end)
+map("n", "<leader>fo", function() Snacks.picker.recent({ layout = "vscode", preview = false }) end, "Recent Files")
 
-map("n", "<leader>fo", function()
-	require("telescope.builtin").oldfiles(require("telescope.themes").get_cursor({ previewer = false }))
-end, "Recent Files")
+map("n", "<leader>fg", function() Snacks.picker.grep(ivy_config) end, "Grep")
 
-map("n", "<leader>fg", function()
-	require("telescope.builtin").live_grep(require("telescope.themes").get_ivy(ivy_config))
-end, "Grep")
+map("n", "<leader>fh", function() Snacks.picker.help({ layout = "ivy" }) end, "Help Tags")
 
-map("n", "<leader>fh", function()
-	require("telescope.builtin").help_tags(require("telescope.themes").get_ivy(ivy_config))
-end)
+map("n", "<leader>fk", function() Snacks.picker.keymaps({ layout = "ivy" }) end, "Keymaps")
 
-map("n", "<leader>fk", function()
-	require("telescope.builtin").keymaps(require("telescope.themes").get_ivy(ivy_config))
-end)
+map("n", "<leader>fb", function() Snacks.picker.buffers() end, "Buffers")
 
-map("n", "<leader>fb", function()
-	require("telescope.builtin").buffers(require("telescope.themes").get_cursor({ previewer = false }))
-end)
+map("n", "<leader>fc", function() Snacks.picker.files({
+		cmd = vim.fn.stdpath("config"),
+		layout = "ivy",
+	}) end, "Find Configs")
 
-map("n", "<leader>fc", function()
-	local theme = require("telescope.themes").get_ivy(vim.tbl_deep_extend("force", ivy_config, {
-		cwd = vim.fn.stdpath("config"),
-	}))
-	require("telescope.builtin").find_files(theme)
-end, "Find Configs")
+map("n", "<leader>fp", function() Snacks.picker.projects({layout="vscode", preview=false}) end, "Find Projects")
 
-map("n", "<leader>fp", function()
-	local theme = require("telescope.themes").get_dropdown()
-	require("telescope").load_extension("projects")
-	require("telescope").extensions.projects.projects(theme)
-end, "Find projects")
-
-map("n", "<leader>fn", function()
-  require("telescope.builtin").find_files({cwd=vim.g.note_path})
-end, "Find mNote")
-
-
+map("n", "<leader>fn", function() Snacks.picker.files({ cwd = vim.g.note_path }) end, "Find mNote")
 
 -------------------------------------------------------------------------------
 -- LSP & DIAGNOSTICS (Autocmd controlled)
@@ -165,11 +141,22 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		lsp_map("n", "<leader>ca", vim.lsp.buf.code_action, "Code action")
 
 		-- Navigation via Native LSP (Standard Jumps)
-		lsp_map("n", "gd", vim.lsp.buf.definition, "Goto Definition")
-		lsp_map("n", "gD", vim.lsp.buf.declaration, "Goto Declaration")
-		lsp_map("n", "gi", vim.lsp.buf.implementation, "Goto Implementation")
-		lsp_map("n", "gr", vim.lsp.buf.references, "Find references")
-		lsp_map("n", "gy", vim.lsp.buf.type_definition, "Type Definition")
+		lsp_map("n", "gd", function() Snacks.picker.lsp_definitions() end, "Goto Definition")
+
+		lsp_map("n", "gD", function() Snacks.picker.lsp_declarations() end, "Goto Declaration")
+
+		lsp_map("n", "gi", function() Snacks.picker.lsp_implementations() end, "Goto Implementation")
+
+		lsp_map("n", "gr", function() Snacks.picker.lsp_references() end, "Find references")
+
+		lsp_map("n", "gy", function() Snacks.picker.lsp_type_definitions() end, "Type Definition")
+
+		lsp_map("n", "gai", function() Snacks.picker.lsp_incoming_calls() end, "Calls Incoming")
+
+		lsp_map("n", "gao", function() Snacks.picker.lsp_outgoing_calls() end, "Calls Outgoing")
+
+		lsp_map("n", "<leader>ss", function() Snacks.picker.lsp_symbols() end, "LSP Symbols")
+		lsp_map("n", "<leader>sd", function() Snacks.picker.diagnostics() end, "LSP Diagnostics")
 
 		-- Formatting
 		lsp_map({ "n", "v" }, "<leader>fm", function()
@@ -222,8 +209,8 @@ map("n", "<leader>lg", function()
 
 		-- Create a one-shot autocmd to clean up this specific buffer on exit
 		vim.api.nvim_create_autocmd("TermClose", {
-			buffer = current_buf,   -- Only trigger for this specific terminal buffer
-			once = true,            -- Run once and self-destruct to prevent memory leaks
+			buffer = current_buf, -- Only trigger for this specific terminal buffer
+			once = true, -- Run once and self-destruct to prevent memory leaks
 			callback = function()
 				-- Force wipe out the buffer once the process (lazygit) exits
 				vim.cmd("bdelete!")

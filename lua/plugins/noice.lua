@@ -12,10 +12,10 @@ return {
 				["cmp.entry.get_documentation"] = true,
 			},
 			signature = {
-        enabled=false,
+				enabled = false,
 				auto_open = { enabled = false },
 				opts = {
-          -- Prevents the signature panel from stealing focus while typing
+					-- Prevents the signature panel from stealing focus while typing
 					focus = false,
 				},
 			},
@@ -40,28 +40,7 @@ return {
 			lsp_doc_border = true,
 		},
 	},
-	dependencies = {
-		"MunifTanjim/nui.nvim",
-		{
-			"folke/snacks.nvim",
-			opts = {
-				bigfile = { enabled = false },
-				dashboard = { enabled = false },
-				explorer = { enabled = false },
-        image = {enabled = true},
-				indent = { enabled = false },
-				input = { enabled = false },
-        lazygit = {enabled = false},
-				notifier = { enabled = true },
-				picker = { enabled = false },
-				quickfile = { enabled = false },
-				scope = { enabled = false },
-				scroll = { enabled = false },
-				statuscolumn = { enabled = false },
-				words = { enabled = false },
-			},
-		},
-	},
+	dependencies = { "MunifTanjim/nui.nvim" },
 	config = function(_, opts)
 		-- HACK: noice shows messages from before it was enabled,
 		-- but this is not ideal when Lazy is installing plugins,
