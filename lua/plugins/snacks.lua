@@ -84,11 +84,7 @@ return {
 			},
 		},
 
-		bigfile = { enabled = true },
-		image = { enabled = true },
-		notifier = { enabled = true },
 		picker = {
-			enabled = true,
 			win = {
         input = {
           keys = {
@@ -106,7 +102,22 @@ return {
 			},
 		},
 
-		indent = { enabled = true },
+    -- https://www.reddit.com/r/neovim/comments/1kuvckk/how_to_hide_all_indent_lines_except_the_current/
+    indent = {
+      indent = {
+        enabled = false,
+      },
+      chunk = {
+        enabled = true,
+        char = {
+          horizontal = '─',
+          vertical = '│',
+          corner_top = '╭',
+          corner_bottom = '╰',
+          arrow = '─',
+        },
+      },
+    },
 		explorer = { enabled = false },
 		input = { enabled = false },
 		lazygit = { enabled = false },

@@ -111,12 +111,9 @@ map("n", "<leader>fh", function() Snacks.picker.help({ layout = "ivy" }) end, "H
 
 map("n", "<leader>fk", function() Snacks.picker.keymaps({ layout = "ivy" }) end, "Keymaps")
 
-map("n", "<leader>fb", function() Snacks.picker.buffers() end, "Buffers")
+map("n", "<leader>fb", function() Snacks.picker.buffers({layout="vscode", preview=false}) end, "Buffers")
 
-map("n", "<leader>fc", function() Snacks.picker.files({
-		cmd = vim.fn.stdpath("config"),
-		layout = "ivy",
-	}) end, "Find Configs")
+map("n", "<leader>fc", function() Snacks.picker.files({ cwd = vim.fn.stdpath("config"), layout = "ivy", }) end, "Find Configs")
 
 map("n", "<leader>fp", function() Snacks.picker.projects({layout="vscode", preview=false}) end, "Find Projects")
 

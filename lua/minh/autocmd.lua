@@ -122,7 +122,7 @@ vim.api.nvim_create_autocmd("BufLeave", {
 	end,
 })
 
--- Telescope: Hide statusline if called from Dashboard
+-- 9. Telescope: Hide statusline if called from Dashboard
 vim.api.nvim_create_autocmd("FileType", {
 	pattern = "TelescopePrompt",
 	group = dashboard_status_group,
@@ -135,3 +135,13 @@ vim.api.nvim_create_autocmd("FileType", {
 		end
 	end,
 })
+
+-- 10. Snacks.indent
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "dashboard", "markdown", "txt", "dbout", "sql", "plsql", "mysql", "qmd", "rmd"}, 
+  callback = function()
+    vim.b.snacks_indent = false
+  end,
+})
+
+
