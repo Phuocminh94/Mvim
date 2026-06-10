@@ -18,6 +18,13 @@ opt.fillchars      = { eob = " " }  -- Hide the '~' on empty lines at end of buf
 opt.mouse          = "a"            -- Enable mouse support
 opt.updatetime     = 300            -- Faster completion and plugin responsiveness (default is 4000ms)
 
+-- Folds
+vim.opt.foldmethod = "expr"         -- Use expr for better folds
+vim.opt.foldexpr = "nvim_treesitter#foldexpr()" -- Use Treesitter for "expr"
+vim.opt.foldlevel = 99              -- Open first level
+vim.opt.foldlevelstart = 99         
+
+
 -- Search Settings
 opt.ignorecase     = true           -- Case insensitive search...
 opt.smartcase      = true           -- ...unless capital letters are used

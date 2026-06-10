@@ -4,7 +4,7 @@ return {
 	lazy = false,
 	opts = {
 		dashboard = {
-			enabled = true, -- Bật lên thay vì false như trước
+			enabled = true, 
 			width = 60,
 			row = nil,
 			col = nil,
@@ -88,7 +88,6 @@ return {
 			win = {
         input = {
           keys = {
-            -- "i" là Insert mode (khi đang gõ), "n" là Normal mode
             ["<C-d>"] = { "preview_scroll_down", mode = { "i", "n" } },
             ["<C-u>"] = { "preview_scroll_up", mode = { "i", "n" } },
           },
@@ -123,7 +122,7 @@ return {
 		lazygit = { enabled = false },
 		quickfile = { enabled = false },
 		scope = { enabled = false },
-		scroll = { enabled = true },
+		scroll = { enabled = false },
 		statuscolumn = { enabled = false },
 		words = { enabled = false },
 		gh = { enabled = true },

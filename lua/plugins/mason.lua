@@ -12,6 +12,7 @@ return {
       {
         "williamboman/mason.nvim",
         opts = {
+          PATH = "append", -- Prioritize system/user global binaries over Mason-installed ones`
           ui = {
             icons = {
               package_installed = "✓",

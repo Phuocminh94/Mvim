@@ -144,4 +144,12 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 
-
+-- 11. Exclude google drive's item from old files
+vim.api.nvim_create_autocmd("BufReadPre", {
+  callback = function()
+    local path = vim.api.nvim_buf_get_name(0)
+    if path:find("^/home/mbp/GoogleDrive/") then
+      vim.opt_local.shadafile = "NONE"
+    end
+  end,
+})

@@ -15,7 +15,7 @@ return {
                 },
                 repl_open_cmd = function(ft, cmd)
                   vim.cmd("botright vsplit")
-                  vim.cmd("vertical resize 50")  -- width in columns
+                  vim.cmd("vertical resize " .. math.floor(vim.o.columns / 3))  -- width in columns
                   local winnr = vim.api.nvim_get_current_win()
 
                   -- Customize window options
