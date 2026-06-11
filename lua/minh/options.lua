@@ -17,6 +17,7 @@ opt.colorcolumn    = "80"           -- Vertical line at 80 chars
 opt.fillchars      = { eob = " " }  -- Hide the '~' on empty lines at end of buffer
 opt.mouse          = "a"            -- Enable mouse support
 opt.updatetime     = 300            -- Faster completion and plugin responsiveness (default is 4000ms)
+opt.scrolloff      = 8
 
 -- Folds
 vim.opt.foldmethod = "expr"         -- Use expr for better folds

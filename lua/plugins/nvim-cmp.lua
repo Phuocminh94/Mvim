@@ -28,6 +28,11 @@ return {
 		require("luasnip.loaders.from_vscode").lazy_load()
 
 		cmp.setup({
+			-- Automatically highlight the first option
+			completion = {
+				completeopt = "menu,menuone,noinsert,select",
+			},
+
 			-- See also minh.lsp_util for the signature panel UI
 			window = {
 				completion = cmp.config.window.bordered({ border = "rounded" }),
@@ -70,8 +75,16 @@ return {
 					end
 				end, { "i", "s" }),
 				["<C-Space>"] = cmp.mapping.complete(), -- show completion suggestions
+				["<C-s>"] = cmp.mapping(function(fallback)
+					if cmp.visible() then
+						cmp.confirm({ select = true })
+					elseif luasnip.expandable() then
+						luasnip.expand()
+					else
+						fallback()
+					end
+				end),
 				["<C-e>"] = cmp.mapping.abort(), -- close completion window
-				["<CR>"] = cmp.mapping.confirm({ select = false }),
 				["<Tab>"] = cmp.mapping(function(fallback)
 					if luasnip.jumpable(1) then
 						luasnip.jump(1)

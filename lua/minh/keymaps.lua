@@ -171,11 +171,8 @@ map("n", "<leader>ds", function()
 end, "Toggle diagnostic signs")
 
 -------------------------------------------------------------------------------
--- SNIPPETS & GIT
+-- GIT
 -------------------------------------------------------------------------------
-map("i", "<C-s>", function()
-	require("luasnip").expand()
-end, "Expand snippet")
 
 -- Gitsigns
 map("n", "]h", function()
