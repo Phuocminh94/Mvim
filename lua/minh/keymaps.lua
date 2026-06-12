@@ -71,7 +71,7 @@ map("n", "<C-w>l", "<cmd>vertical resize +2<CR>", "Increase width")
 
 -- Tab management
 map("n", "<leader>tn", "<cmd>tabnew<CR>", "Open new tab")
-map("n", "<leader>tx", "<cmd>tabclose<CR>", "Close tab")
+map("n", "<leader>td", "<cmd>tabclose<CR>", "Close tab")
 map("n", "<leader>tf", "<cmd>tabnew %<CR>", "Move buffer to tab")
 
 -------------------------------------------------------------------------------

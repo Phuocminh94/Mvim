@@ -22,7 +22,6 @@ return {
                   vim.wo[winnr].number = false
                   vim.wo[winnr].relativenumber = false
                   vim.wo[winnr].signcolumn = "no"
-
                   return winnr
                 end
             },

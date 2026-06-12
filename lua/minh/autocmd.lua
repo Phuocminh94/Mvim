@@ -138,18 +138,28 @@ vim.api.nvim_create_autocmd("FileType", {
 
 -- 10. Snacks.indent
 vim.api.nvim_create_autocmd("FileType", {
-  pattern = { "dashboard", "markdown", "txt", "dbout", "sql", "plsql", "mysql", "qmd", "rmd"}, 
-  callback = function()
-    vim.b.snacks_indent = false
-  end,
+	pattern = { "dashboard", "markdown", "txt", "dbout", "sql", "plsql", "mysql", "qmd", "rmd" },
+	callback = function()
+		vim.b.snacks_indent = false
+	end,
 })
 
 -- 11. Exclude google drive's item from old files
 vim.api.nvim_create_autocmd("BufReadPre", {
-  callback = function()
-    local path = vim.api.nvim_buf_get_name(0)
-    if path:find("^/home/mbp/GoogleDrive/") then
-      vim.opt_local.shadafile = "NONE"
-    end
-  end,
+	callback = function()
+		local path = vim.api.nvim_buf_get_name(0)
+		if path:find("^/home/mbp/GoogleDrive/") then
+			vim.opt_local.shadafile = "NONE"
+		end
+	end,
+})
+
+-- 12. Force UI redraw on command-line changes to fix stuck LSP/search artifacts (noice.nvim)
+local redraw_group = vim.api.nvim_create_augroup("update_search_redraw", { clear = true })
+vim.api.nvim_create_autocmd("CmdlineChanged", {
+	group = redraw_group,
+	desc = "Fix command-line rendering artifacts by scheduling a redraw",
+	callback = function()
+		vim.schedule(vim.cmd.redraw)
+	end,
 })
