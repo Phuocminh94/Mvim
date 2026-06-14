@@ -27,6 +27,11 @@ return {
 		-- loads vscode style snippets from installed plugins (e.g. friendly-snippets)
 		require("luasnip.loaders.from_vscode").lazy_load()
 
+    -- loads my own snippets 
+    require("luasnip.loaders.from_lua").lazy_load({paths = vim.g.snippet_path})
+    luasnip.filetype_extend("rmd", { "markdown" })
+    luasnip.filetype_extend("tex", { "markdown" })
+
 		cmp.setup({
 			-- Automatically highlight the first option
 			completion = {
