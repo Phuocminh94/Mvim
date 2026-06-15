@@ -73,6 +73,14 @@ map("n", "<C-w>l", "<cmd>vertical resize +2<CR>", "Increase width")
 map("n", "<leader>tn", "<cmd>tabnew<CR>", "Open new tab")
 map("n", "<leader>td", "<cmd>tabclose<CR>", "Close tab")
 map("n", "<leader>tf", "<cmd>tabnew %<CR>", "Move buffer to tab")
+map("n", "<leader>tcd", function()
+	vim.ui.input({ prompt = "Enter directory: ", completion = "dir" }, function(path)
+		if path and path ~= "" then
+			vim.cmd("tabnew")
+			vim.cmd("tcd " .. path)
+		end
+	end)
+end, "Open new tab with specific CWD")
 
 -------------------------------------------------------------------------------
 -- PLUGINS & PICKERS
@@ -91,7 +99,7 @@ map("v", "<leader>s", ":sort /^\\s*/<CR>", "Sort lines")
 
 -- Utilities
 map("n", "<leader>md", "<cmd>MarkdownPreviewToggle<CR>", "Toggle Markdown Preview")
-map({ "n", "t" }, "<A-/>", function() -- <C-/> conflicts with Tmux
+map({ "n", "t" }, "<C-/>", function() -- <C-/> conflicts with Tmux
 	local opts = vim.fn.has("win32") == 1 and { cmd = "powershell" } or {}
 	require("minh.terminal").toggle(nil, opts)
 end, "Toggle Floatterm")
@@ -101,23 +109,41 @@ map("n", "<leader>p", "<cmd>PasteImage<CR>", "Paste Image (img-clip)")
 -------------------------------------------------------------------------------
 -- SNACKS PICKER
 -------------------------------------------------------------------------------
-map("n", "<leader>ff", function() Snacks.picker.files({ layout = "sidebar" }) end, "Find Files")
+map("n", "<leader>ff", function()
+	Snacks.picker.files({ layout = "sidebar" })
+end, "Find Files")
 
-map("n", "<leader>fo", function() Snacks.picker.recent({ layout = "vscode", preview = false }) end, "Recent Files")
+map("n", "<leader>fo", function()
+	Snacks.picker.recent({ layout = "vscode", preview = false })
+end, "Recent Files")
 
-map("n", "<leader>fg", function() Snacks.picker.grep(ivy_config) end, "Grep")
+map("n", "<leader>fg", function()
+	Snacks.picker.grep(ivy_config)
+end, "Grep")
 
-map("n", "<leader>fh", function() Snacks.picker.help({ layout = "ivy" }) end, "Help Tags")
+map("n", "<leader>fh", function()
+	Snacks.picker.help({ layout = "ivy" })
+end, "Help Tags")
 
-map("n", "<leader>fk", function() Snacks.picker.keymaps({ layout = "ivy" }) end, "Keymaps")
+map("n", "<leader>fk", function()
+	Snacks.picker.keymaps({ layout = "ivy" })
+end, "Keymaps")
 
-map("n", "<leader>fb", function() Snacks.picker.buffers({layout="vscode", preview=false}) end, "Buffers")
+map("n", "<leader>fb", function()
+	Snacks.picker.buffers({ layout = "vscode", preview = false })
+end, "Buffers")
 
-map("n", "<leader>fc", function() Snacks.picker.files({ cwd = vim.fn.stdpath("config"), layout = "ivy", }) end, "Find Configs")
+map("n", "<leader>fc", function()
+	Snacks.picker.files({ cwd = vim.fn.stdpath("config"), layout = "ivy" })
+end, "Find Configs")
 
-map("n", "<leader>fp", function() Snacks.picker.projects({layout="vscode", preview=false}) end, "Find Projects")
+map("n", "<leader>fp", function()
+	Snacks.picker.projects({ layout = "vscode", preview = false })
+end, "Find Projects")
 
-map("n", "<leader>fn", function() Snacks.picker.files({ cwd = vim.g.note_path }) end, "Find mNote")
+map("n", "<leader>fn", function()
+	Snacks.picker.files({ cwd = vim.g.note_path })
+end, "Find mNote")
 
 -------------------------------------------------------------------------------
 -- LSP & DIAGNOSTICS (Autocmd controlled)
@@ -138,22 +164,40 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		lsp_map("n", "<leader>ca", vim.lsp.buf.code_action, "Code action")
 
 		-- Navigation via Native LSP (Standard Jumps)
-		lsp_map("n", "gd", function() Snacks.picker.lsp_definitions() end, "Goto Definition")
+		lsp_map("n", "gd", function()
+			Snacks.picker.lsp_definitions()
+		end, "Goto Definition")
 
-		lsp_map("n", "gD", function() Snacks.picker.lsp_declarations() end, "Goto Declaration")
+		lsp_map("n", "gD", function()
+			Snacks.picker.lsp_declarations()
+		end, "Goto Declaration")
 
-		lsp_map("n", "gi", function() Snacks.picker.lsp_implementations() end, "Goto Implementation")
+		lsp_map("n", "gi", function()
+			Snacks.picker.lsp_implementations()
+		end, "Goto Implementation")
 
-		lsp_map("n", "gr", function() Snacks.picker.lsp_references() end, "Find references")
+		lsp_map("n", "gr", function()
+			Snacks.picker.lsp_references()
+		end, "Find references")
 
-		lsp_map("n", "gy", function() Snacks.picker.lsp_type_definitions() end, "Type Definition")
+		lsp_map("n", "gy", function()
+			Snacks.picker.lsp_type_definitions()
+		end, "Type Definition")
 
-		lsp_map("n", "gai", function() Snacks.picker.lsp_incoming_calls() end, "Calls Incoming")
+		lsp_map("n", "gai", function()
+			Snacks.picker.lsp_incoming_calls()
+		end, "Calls Incoming")
 
-		lsp_map("n", "gao", function() Snacks.picker.lsp_outgoing_calls() end, "Calls Outgoing")
+		lsp_map("n", "gao", function()
+			Snacks.picker.lsp_outgoing_calls()
+		end, "Calls Outgoing")
 
-		lsp_map("n", "<leader>ss", function() Snacks.picker.lsp_symbols() end, "LSP Symbols")
-		lsp_map("n", "<leader>sd", function() Snacks.picker.diagnostics() end, "LSP Diagnostics")
+		lsp_map("n", "<leader>ss", function()
+			Snacks.picker.lsp_symbols()
+		end, "LSP Symbols")
+		lsp_map("n", "<leader>sd", function()
+			Snacks.picker.diagnostics()
+		end, "LSP Diagnostics")
 
 		-- Formatting
 		lsp_map({ "n", "v" }, "<leader>fm", function()

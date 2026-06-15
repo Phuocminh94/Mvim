@@ -90,6 +90,7 @@ return {
           keys = {
             ["<C-d>"] = { "preview_scroll_down", mode = { "i", "n" } },
             ["<C-u>"] = { "preview_scroll_up", mode = { "i", "n" } },
+						["<C-y>"] = {"yank_path", mode = {"i", "n"}, desc="Copy File Path"},
           },
         },
 				list = {
@@ -99,6 +100,18 @@ return {
 					},
 				},
 			},
+      actions = {
+        yank_path = function (picker)
+          local item = picker:current()
+          if not item or not item.file then return end
+
+          local path = vim.fn.fnamemodify(item.file, ":p")
+
+          vim.fn.setreg("+", path)
+
+          vim.notify("Path copied: " .. path, vim.log.levels.INFO)
+        end
+      }
 		},
 
     -- https://www.reddit.com/r/neovim/comments/1kuvckk/how_to_hide_all_indent_lines_except_the_current/
