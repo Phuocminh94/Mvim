@@ -63,7 +63,8 @@ M.toggle = function(id, opts)
 
 		-- Only create terminal if not terminal
 		if vim.bo[term.buf].buftype ~= "terminal" then
-			vim.fn.termopen(opts.cmd or vim.o.shell, {
+			vim.fn.jobstart(opts.cmd or vim.o.shell, {
+        term = true,
 				cwd = vim.fn.getcwd(),
 				on_exit = function()
 					if vim.api.nvim_win_is_valid(term.win) then

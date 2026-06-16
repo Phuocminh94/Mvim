@@ -1,7 +1,41 @@
 local M = {}
 
 -- =============================================================================
--- SECTION: CORE UTILITIES (THE ENGINES)
+-- SNACKS.PICKER HELPER 
+-- =============================================================================
+local function show_toc_with_snacks(results, title)
+  local ok, snacks = pcall(require, "snacks")
+  if not ok then return end
+
+  snacks.picker.pick({
+    title = title,
+    items = results,
+    format = function(item)
+      return { { item.text, "Normal" } }
+    end,
+    layout = {
+      preview = false, 
+      layout = {
+        width = 0.5,
+        height = 0.4,
+        border = "single",
+      },
+    },
+    win = {
+      input = { border = "single" },
+      list = { border = "single" },
+    },
+    confirm = function(picker, item)
+      picker:close()
+      if item then
+        vim.api.nvim_win_set_cursor(0, { item.line, 0 })
+      end
+    end,
+  })
+end
+
+-- =============================================================================
+-- SECTION: CORE UTILITIES 
 -- =============================================================================
 
 --- Helper: Logic for splitting a long string into a table of wrapped fragments
@@ -82,10 +116,11 @@ M.hardwrap_md = function(n)
 
     -- Skip rules
     return in_math_block 
-      or trimmed:find("^#")           -- Headers
-      or trimmed:find("^`")           -- Inline code
-      or trimmed:find("^%$")          -- Inline math
-      or trimmed:find("^\\%(")        -- LaTeX inline math
+      or trimmed:find("^#")           -- headers
+      or trimmed:find("^`")           -- inline code
+      or trimmed:find("^%$")          -- inline math
+      or trimmed:find("^\\%(")        -- latex inline math
+      or trimmed:find("^%|")          -- markdown table
   end)
 end
 
@@ -117,7 +152,7 @@ M.markdown_toc = function()
     end
   end)
 
-  require("telescope").show_toc_picker(results, "Markdown TOC")
+  show_toc_with_snacks(results, "Markdown TOC")
 end
 
 M.latex_toc = function()
@@ -141,7 +176,7 @@ M.latex_toc = function()
     end
   end)
 
-  require("telescope").show_toc_picker(results, "LaTeX TOC")
+  show_toc_with_snacks(results, "LaTeX TOC")
 end
 
 return M

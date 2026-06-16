@@ -2,6 +2,7 @@
 return {
 	"nvim-neo-tree/neo-tree.nvim",
 	cmd = "Neotree",
+	dependencies = { "nvim-lua/plenary.nvim" },
 	deactivate = function()
 		vim.cmd([[Neotree close]])
 	end,

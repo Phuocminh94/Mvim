@@ -1,7 +1,7 @@
 return {
   'nvim-telescope/telescope.nvim',
   dependencies = { 'nvim-lua/plenary.nvim' },
-
+  enabled = false,
   -- 1. Use a function for 'opts' to safely require actions
   opts = function()
     local actions = require("telescope.actions")
