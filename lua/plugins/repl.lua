@@ -29,8 +29,8 @@ return {
             -- Keymaps
             keymaps = {
                 toggle_repl       = "<space>rt", -- toggle REPL
-                visual_send       = "<space>rv", -- visual selection send
-                send_line         = "<space>rl",
+                visual_send       = "<space><space>", -- visual selection send
+                send_line         = "<space><space>",
                 send_paragraph    = "<space>rp",
                 send_until_cursor = "<space>ru",
                 cr                = "<space>rn",

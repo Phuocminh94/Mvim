@@ -207,11 +207,10 @@ vim.api.nvim_create_autocmd("LspAttach", {
 })
 
 -- Toggle diagnostic signs
-local signs_enabled = true
 map("n", "<leader>ds", function()
 	local is_enabled = vim.diagnostic.is_enabled()
 	vim.diagnostic.enable(not is_enabled)
-	print("Diagnostic signs: " .. (is_enabled and "ON" or "OFF"))
+	print("Diagnostic signs: " .. (is_enabled and "OFF" or "ON"))
 end, "Toggle diagnostic signs")
 
 -------------------------------------------------------------------------------

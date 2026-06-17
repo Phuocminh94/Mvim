@@ -144,7 +144,7 @@ M.markdown_toc = function()
       return nil
     end
 
-    if inside_code_block or line:match("`") then return nil end
+    if inside_code_block or line:match("^`") then return nil end
 
     local heading = line:match("^(#+)%s+.*")
     if heading then
