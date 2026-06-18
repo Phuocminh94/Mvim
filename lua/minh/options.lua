@@ -4,6 +4,7 @@
 if not pcall(require, "minh/local_config") then vim.g.note_path = "" end
 vim.g.loaded_netrw = 1              -- Disable netrw at the very start
 vim.g.loaded_netrwPlugin = 1
+vim.g.snippet_path = vim.api.nvim_get_runtime_file("lua/snippets", false)[1] or {}
 
 local opt = vim.opt
 -- General UI & Feedback

@@ -99,7 +99,7 @@ map("v", "<leader>s", ":sort /^\\s*/<CR>", "Sort lines")
 
 -- Utilities
 map("n", "<leader>md", "<cmd>MarkdownPreviewToggle<CR>", "Toggle Markdown Preview")
-map({ "n", "t" }, "<C-/>", function() -- <C-/> conflicts with Tmux
+map({ "n", "t" }, "<A-/>", function() -- <C-/> conflicts with Tmux
 	local opts = vim.fn.has("win32") == 1 and { cmd = "powershell" } or {}
 	require("minh.terminal").toggle(nil, opts)
 end, "Toggle Floatterm")
@@ -219,10 +219,10 @@ end, "Toggle diagnostic signs")
 
 -- Gitsigns
 map("n", "]h", function()
-	require("gitsigns").next_hunk()
+	require("gitsigns").nav_hunk("next")
 end, "Next git hunk")
 map("n", "[h", function()
-	require("gitsigns").prev_hunk()
+	require("gitsigns").nav_hunk("prev")
 end, "Prev git hunk")
 map("n", "<leader>hr", function()
 	require("gitsigns").reset_hunk()
@@ -230,6 +230,11 @@ end, "Reset git hunk")
 map("n", "<leader>hp", function()
 	require("gitsigns").preview_hunk()
 end, "Preview git hunk")
+map("n", "<leader>hs", function()
+	require("gitsigns").stage_hunk()
+end, "Stage git hunk")
+
+-- Lazygit
 map("n", "<leader>lg", function()
 	if vim.fn.executable("lazygit") == 1 then
 		local opts = {

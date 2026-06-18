@@ -104,6 +104,14 @@ end
 
 M.cursor = "%#St_Text# Ln %l, Col %v  "
 
+M.recording = function()
+    local reg = vim.fn.reg_recording()
+    if reg == "" then
+        return "" 
+    end
+    return string.format("%%#St_Text#  %%#DiagnosticError# REC[@%s]%%#St_Text#", reg)
+end
+
 M.build_statusline = function()
     return table.concat({
         M.mode(),
@@ -111,6 +119,7 @@ M.build_statusline = function()
         M.git(),
         "%=",
         M.clock(),
+        M.recording(),
         "%=",
         M.cursor,
         M.cwd(),
