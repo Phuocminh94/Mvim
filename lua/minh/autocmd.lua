@@ -17,7 +17,7 @@ autocmd("TextYankPost", {
 autocmd("FileType", {
 	desc = "quick escape with q",
 	group = custom,
-	pattern = { "checkhealth", "help", "lspinfo", "man", "qf", "git", "lazygit", "spectre_panel" },
+	pattern = { "checkhealth", "help", "fugitive", "lspinfo", "man", "qf", "git", "lazygit", "spectre_panel" },
 	callback = function(event)
 		vim.bo[event.buf].buflisted = false
 		vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = event.buf, silent = true })

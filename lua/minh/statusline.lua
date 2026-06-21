@@ -109,7 +109,7 @@ M.recording = function()
     if reg == "" then
         return "" 
     end
-    return string.format("%%#St_Text#  %%#DiagnosticError# REC[@%s]%%#St_Text#", reg)
+    return string.format("%%#St_Text#  %%#DiagnosticError# REC @%s%%#St_Text#", reg)
 end
 
 M.build_statusline = function()
