@@ -14,17 +14,24 @@ opt.cursorline     = true           -- Highlight the current line
 opt.cursorlineopt  = "number"       -- Only highlight the number, not the whole line (cleaner)
 opt.termguicolors  = true           -- True color support (required for modern themes)
 opt.signcolumn     = "yes"          -- Always show signcolumn (stops text "jumping" on errors)
-opt.colorcolumn    = "80"           -- Vertical line at 80 chars
 opt.fillchars      = { eob = " " }  -- Hide the '~' on empty lines at end of buffer
 opt.mouse          = "a"            -- Enable mouse support
 opt.updatetime     = 300            -- Faster completion and plugin responsiveness (default is 4000ms)
 opt.scrolloff      = 8
+opt.list = true
+opt.listchars = {
+  tab = "  ",
+  eol = '↲',
+  trail = '•',
+  extends = '»',                    -- Use in conjunction with 'nowrap'
+  precedes = '«',
+}
 
 -- Folds
 vim.opt.foldmethod = "expr"         -- Use expr for better folds
 vim.opt.foldexpr = "nvim_treesitter#foldexpr()" -- Use Treesitter for "expr"
 vim.opt.foldlevel = 99              -- Open first level
-vim.opt.foldlevelstart = 99         
+vim.opt.foldlevelstart = 99
 
 
 -- Search Settings
@@ -34,11 +41,10 @@ opt.grepprg        = "rg --vimgrep --no-heading --smart-case" -- Use Ripgrep for
 opt.incsearch      = true
 
 -- Tabs & Indentation (The 2-space standard)
-opt.tabstop        = 2 
-opt.shiftwidth     = 2 
+opt.tabstop        = 2
+opt.shiftwidth     = 2
 opt.expandtab      = true           -- Use spaces instead of tabs
-opt.autoindent     = true 
-opt.textwidth      = 80             -- Wrap text at 80 characters
+opt.autoindent     = true
 opt.wrap           = false          -- Don't wrap long lines visually
 
 -- System Integration
