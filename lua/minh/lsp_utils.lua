@@ -46,7 +46,7 @@ local function lsp_highlight_document(client, bufnr)
     -- Modern check using server_capabilities
     if client.server_capabilities.documentHighlightProvider then
         local hl_augroup = vim.api.nvim_create_augroup("lsp_document_highlight", { clear = false })
-        
+
         -- Clear existing autocmds for this buffer to prevent duplicates on reload
         vim.api.nvim_clear_autocmds({ buffer = bufnr, group = hl_augroup })
 
@@ -88,7 +88,7 @@ local function setup_auto_signature(client, bufnr)
 
     local triggerChars = signature_provider.triggerCharacters
     local group = vim.api.nvim_create_augroup("LspSignature", { clear = false })
-    
+
     vim.api.nvim_clear_autocmds({ group = group, buffer = bufnr })
 
     vim.api.nvim_create_autocmd("TextChangedI", {

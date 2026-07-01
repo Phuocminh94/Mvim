@@ -4,12 +4,14 @@ vim.keymap.set("n", "<leader><Enter>", "<cmd>%DB<cr>", { buffer = true, desc = "
 vim.keymap.set("v", "<leader><leader>", ":DB<cr>", { buffer = true, desc = "Execute selected SQL" })
 vim.keymap.set("n", "<leader><leader>", "<cmd>.DB<cr>", { buffer = true, desc = "Execute current line" })
 
+require("luasnip.loaders.from_vscode").lazy_load()
 local has_cmp, cmp = pcall(require, "cmp")
 if has_cmp then
-    cmp.setup.buffer({
-        sources = {
-            { name = "vim-dadbod-completion" },
-            { name = "buffer" },
-        },
-    })
+	cmp.setup.buffer({
+		sources = {
+			{ name = "vim-dadbod-completion" },
+			{ name = "luasnip" },
+			{ name = "buffer" },
+		},
+	})
 end
