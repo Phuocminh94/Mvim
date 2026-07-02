@@ -33,7 +33,7 @@ return {
                 send_line         = "<space><space>",
                 send_paragraph    = "<space>rp",
                 send_until_cursor = "<space>ru",
-                cr                = "<space>rn",
+                cr                = "<space><CR>",
                 interrupt         = "<space>ri<space>",
                 exit              = "<space>rq",
                 clear             = "<space>rc",

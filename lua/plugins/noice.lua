@@ -24,6 +24,14 @@ return {
 			{
 				filter = {
 					event = "msg_show",
+					kind = "echomsg",
+				},
+        opts = { skip = false }, -- Do not skip duplicates
+				view = "mini",
+			},
+			{
+				filter = {
+					event = "msg_show",
 					any = {
 						{ find = "%d+L, %d+B" },
 						{ find = "; after #%d+" },

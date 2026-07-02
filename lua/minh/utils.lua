@@ -14,7 +14,7 @@ local function show_toc_with_snacks(results, title)
       return { { item.text, "Normal" } }
     end,
     layout = {
-      preview = false, 
+      preview = false,
       layout = {
         width = 0.5,
         height = 0.4,
@@ -46,7 +46,7 @@ local function wrap_string(text, n)
     local segment = line:sub(1, n)
     -- Capture position of the last space within the segment
     local break_at = segment:match(".*()%s") 
-    
+
     if break_at then
       table.insert(result, line:sub(1, break_at - 1))
       -- Move 'line' to after the space, trimming leading whitespace
@@ -135,9 +135,11 @@ end
 -- SECTION: TABLE OF CONTENTS (THE RULES)
 -- =============================================================================
 
-M.markdown_toc = function()
+M.markdown_toc = function(toc_name)
+  toc_name = toc_name or "Markdown TOC"
   local inside_code_block = false
-  
+  local catch_next_line = false
+
   local results = build_toc_data(function(line)
     if line:match("^```") then
       inside_code_block = not inside_code_block
@@ -146,13 +148,32 @@ M.markdown_toc = function()
 
     if inside_code_block or line:match("^`") then return nil end
 
+    -- for gp.nvim chat buffer
+    if catch_next_line then
+      if line:match("^%s*$") then return nil end 
+
+      catch_next_line = false
+      return { level = 1, display_text = "💬 MBP: " .. line }
+    end
+    if line:match("^%s*💬") then
+      local inline_text = line:match("^%s*💬 MBP%s*[:%s]*(.*)")
+
+      if inline_text and inline_text ~= "" then
+        return { level = 1, display_text = "💬 MBP: " .. inline_text }
+      else
+        catch_next_line = true
+        return nil 
+      end
+    end
+
+    -- for normal markdown
     local heading = line:match("^(#+)%s+.*")
     if heading then
       return { level = #heading, display_text = line }
     end
   end)
 
-  show_toc_with_snacks(results, "Markdown TOC")
+  show_toc_with_snacks(results, toc_name)
 end
 
 M.latex_toc = function()
