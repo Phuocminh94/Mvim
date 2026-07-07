@@ -6,7 +6,7 @@ return {
 			default_command_agent = "Gemini",
 			default_chat_agent = "Gemini",
 			chat_user_prefix = "💬 MBP ",
-      chat_assistant_prefix = "🤖 ",
+			chat_assistant_prefix = "🤖 ",
 
 			providers = {
 				googleai = {
@@ -19,11 +19,7 @@ return {
 					name = "Gemini",
 					provider = "googleai",
 					model = { model = "gemini-3.1-flash-lite" },
-					system_prompt = "Always provide accurate, logical, and optimized responses. "
-						.. "The current system time is: "
-            .. os.date("%A, %d %B %Y %H:%M") -- 
-						.. ". "
-						.. "Use this timestamp as the real-world context if the user asks about dates, time, or schedules.",
+					system_prompt = "Always provide accurate, logical, and optimized responses.",
 				},
 			},
 		})
