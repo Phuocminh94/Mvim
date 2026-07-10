@@ -8,10 +8,11 @@ return {
             -- Where the REPL opens and which command to use
             config = {
                 repl_definition = {
-                    python = { command = { "ipython", "--no-autoindent" } }, -- or { "python" }
-                    sh     = { command = { "bash" } },
-                    rmd    = { command = { "ipython", "--no-autoindent" } }, -- or { "python" }
-                    R      = { command = { "Rscript" } }
+                  python   = { command = { "ipython", "--no-autoindent" } }, -- or { "python" }
+                  sh       = { command = { "bash" } },
+                  rmd      = { command = { "ipython", "--no-autoindent" } }, -- or { "python" }
+                  markdown = { command = { "ipython", "--no-autoindent" } }, -- or { "python" }
+                  R        = { command = { "Rscript" } }
                 },
                 repl_open_cmd = function(ft, cmd)
                   vim.cmd("botright vsplit")
