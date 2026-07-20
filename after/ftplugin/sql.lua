@@ -9,9 +9,9 @@ local has_cmp, cmp = pcall(require, "cmp")
 if has_cmp then
 	cmp.setup.buffer({
 		sources = {
-			{ name = "vim-dadbod-completion" },
+			{ name = "vim-dadbod-completion", priority = 1000 },
 			{ name = "luasnip" },
-			{ name = "buffer" },
+			{ name = "buffer", priority = 250 },
 		},
 	})
 end

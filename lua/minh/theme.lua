@@ -1,0 +1,1 @@
+/home/mbp/.local/share/dotfiles/current/theme/neovim.lua

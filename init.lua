@@ -14,12 +14,7 @@ require("minh.autocmd")
 -- Plugin manager (Lazy.nvim)
 require("lazy_cf")
 
--- UI Components
-local ok, _ = pcall(require, "plugins.theme")
-if not ok then
-  vim.cmd.colorscheme('neovim')
-end
-
+-- Personal
 require("minh.statusline").setup()
 require("minh.tabline").setup()
 require("minh.lsp_utils").setup_ui()
