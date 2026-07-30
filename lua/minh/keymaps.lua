@@ -91,7 +91,6 @@ map("n", "<leader>e", "<cmd>Neotree toggle<CR>", "Toggle File Explorer")
 -- Quickfix list
 map("n", "]q", "<cmd>cnext<CR>", "Next quickfix item")
 map("n", "[q", "<cmd>cprev<CR>", "Prev quickfix item")
-map("n", "<leader>gg", ":copen | :silent :grep ", "Vimgrep")
 
 -- EasyAlign / Sort
 map({ "n", "x" }, "ga", "<Plug>(EasyAlign)", "EasyAlign")

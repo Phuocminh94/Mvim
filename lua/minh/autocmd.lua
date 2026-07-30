@@ -163,3 +163,18 @@ vim.api.nvim_create_autocmd("CmdlineChanged", {
 		vim.schedule(vim.cmd.redraw)
 	end,
 })
+
+-- 13. Remove items from qf list
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "qf",
+  callback = function()
+    vim.keymap.set("n", "dd", function()
+      local qf = vim.fn.getqflist()
+      local idx = vim.fn.line(".")
+      if idx <= #qf then
+        table.remove(qf, idx)
+        vim.fn.setqflist(qf, "r")
+      end
+    end, { buffer = true, silent = true })
+  end,
+})
