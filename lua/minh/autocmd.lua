@@ -148,7 +148,7 @@ vim.api.nvim_create_autocmd("FileType", {
 vim.api.nvim_create_autocmd("BufReadPre", {
 	callback = function()
 		local path = vim.api.nvim_buf_get_name(0)
-		if path:find("^/home/mbp/GoogleDrive/") then
+		if path:find("^/home/mbp/Cloud/gdrive/") then
 			vim.opt_local.shadafile = "NONE"
 		end
 	end,

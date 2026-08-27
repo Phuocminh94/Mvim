@@ -132,6 +132,10 @@ map("n", "<leader>fb", function()
 	Snacks.picker.buffers({ layout = "vscode", preview = false })
 end, "Buffers")
 
+map("n", "<leader>f/", function()
+	Snacks.picker.lines()
+end, "Grep Current Buffer")
+
 map("n", "<leader>fc", function()
 	Snacks.picker.files({ cwd = vim.fn.stdpath("config"), layout = "ivy" })
 end, "Find Configs")
