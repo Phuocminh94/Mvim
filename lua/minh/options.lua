@@ -57,3 +57,5 @@ opt.backspace      = "indent,eol,start" -- Logical backspace behavior
 -- Language & Dict
 opt.spell          = true
 opt.dictionary     = { "~/.config/nvim/dict/english.txt" }
+
+vim.g.lazyvim_check_order = false
