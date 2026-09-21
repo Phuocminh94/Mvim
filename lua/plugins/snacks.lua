@@ -91,6 +91,7 @@ return {
             ["<C-d>"] = { "preview_scroll_down", mode = { "i", "n" } },
             ["<C-u>"] = { "preview_scroll_up", mode = { "i", "n" } },
 						["<C-y>"] = {"yank_path", mode = {"i", "n"}, desc="Copy File Path"},
+						["<M-y>"] = {"yank_text", mode = {"i", "n"}, desc="Copy Notification Text"}
           },
         },
 				list = {
@@ -110,6 +111,19 @@ return {
           vim.fn.setreg("+", path)
 
           vim.notify("Path copied: " .. path, vim.log.levels.INFO)
+        end,
+
+        -- Added action to extract and copy the notification message
+        yank_text = function (picker)
+          local item = picker:current()
+          if not item then return end
+
+          -- Snacks notifications store the message in item.text or item.msg
+          local msg = item.text or item.msg or (item.item and item.item.msg)
+          if not msg then return end
+
+          vim.fn.setreg("+", msg)
+          vim.notify("Notification text copied!", vim.log.levels.INFO)
         end
       }
 		},
@@ -130,17 +144,21 @@ return {
         },
       },
     },
-		explorer = { enabled = false },
-		input = { enabled = false },
-		lazygit = { enabled = false },
-		quickfile = { enabled = false },
-		scope = { enabled = false },
-		scroll = { enabled = false },
-		statuscolumn = { enabled = false },
-		words = { enabled = false },
-		gh = { enabled = true },
-		git = { enabled = false },
-		gitbrowse = { enabled = false },
-		rename = { enabled = false },
-	},
+    notifier = {
+      enabled = true,
+      timeout = 3000, -- Disappear after 3s
+    },
+    explorer = { enabled = false },
+    input = { enabled = false },
+    lazygit = { enabled = false },
+    quickfile = { enabled = false },
+    scope = { enabled = false },
+    scroll = { enabled = false },
+    statuscolumn = { enabled = false },
+    words = { enabled = false },
+    gh = { enabled = true },
+    git = { enabled = false },
+    gitbrowse = { enabled = false },
+    rename = { enabled = false },
+  },
 }
