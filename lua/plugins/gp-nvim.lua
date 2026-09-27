@@ -24,6 +24,21 @@ return {
         },
       },
     })
+
+    -- Disable spellcheck only for gp.nvim chat buffers.
+    -- gp.nvim chat files are always saved under the chat_dir directory
+    -- (default: stdpath("data") .. "/gp/chats"), so matching by path
+    -- is more reliable than matching by filetype ("markdown", shared
+    -- with all normal .md files).
+    local gp_chat_dir = vim.fn.stdpath("data") .. "/gp/chats"
+    vim.api.nvim_create_autocmd({ "BufWinEnter", "BufRead" }, {
+      group = vim.api.nvim_create_augroup("gp_nvim_no_spell", { clear = true }),
+      pattern = gp_chat_dir .. "/*",
+      callback = function()
+        vim.opt_local.spell = false
+      end,
+    })
+
     vim.keymap.set("n", "<Leader>Ai", "<cmd>GpChatNew vsplit<cr>", { desc = "AI Chat New" })
     vim.keymap.set("n", "<Leader>ai", "<cmd>GpChatToggle vsplit<cr>", { desc = "AI Chat Toggle Panel" })
     vim.keymap.set("v", "<Leader>ai", ":<C-u>'<,'>GpChatPaste vsplit<cr>", { desc = "AI Chat Paste Selection" })
