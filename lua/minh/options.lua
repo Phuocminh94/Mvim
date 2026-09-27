@@ -18,7 +18,7 @@ opt.fillchars      = { eob = " " }  -- Hide the '~' on empty lines at end of buf
 opt.mouse          = "a"            -- Enable mouse support
 opt.updatetime     = 300            -- Faster completion and plugin responsiveness (default is 4000ms)
 opt.scrolloff      = 8
-opt.list = true
+opt.list = false
 opt.listchars = {
   tab = "  ",
   eol = '↲',

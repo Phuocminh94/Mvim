@@ -1,1 +1,1 @@
-/home/mbp/.local/share/dotfiles/current/theme/neovim.lua
+/home/mbp/.local/state/omarchy/current/theme/neovim.lua

@@ -178,3 +178,56 @@ vim.api.nvim_create_autocmd("FileType", {
     end, { buffer = true, silent = true })
   end,
 })
+
+-- 14. Auto sync quickfix item based on cursor position (by claude)
+vim.api.nvim_create_autocmd("CursorMoved", {
+  group = vim.api.nvim_create_augroup("QfSyncWithCursor", { clear = true }),
+  callback = function()
+    -- Find the actual quickfix window currently visible on screen
+    local qf_win = nil
+    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      local buf = vim.api.nvim_win_get_buf(win)
+      if vim.api.nvim_get_option_value("filetype", { buf = buf }) == "qf" then
+        qf_win = win
+        break
+      end
+    end
+
+    -- Stop if the quickfix window is not open
+    if not qf_win then return end
+
+    local cur_win = vim.api.nvim_get_current_win()
+    if cur_win == qf_win then return end
+
+    local bufnr = vim.api.nvim_get_current_buf()
+    -- Avoid running when the cursor is moving inside the quickfix window itself
+    if vim.api.nvim_get_option_value("filetype", { buf = bufnr }) == "qf" then return end
+
+    local lnum = vim.api.nvim_win_get_cursor(cur_win)[1]
+    local qf_list = vim.fn.getqflist()
+
+    -- Find the item with the closest lnum (less than or equal to the current lnum)
+    -- belonging to the current buffer. Does NOT assume the list is contiguously
+    -- sorted -> scan the whole list and pick the best match.
+    local best_idx = nil
+    local best_diff = math.huge
+    for i, item in ipairs(qf_list) do
+      if item.bufnr == bufnr and item.lnum <= lnum then
+        local diff = lnum - item.lnum
+        if diff < best_diff then
+          best_diff = diff
+          best_idx = i
+        end
+      end
+    end
+
+    if best_idx then
+      -- Move the cursor inside the quickfix window to the matching line
+      pcall(vim.api.nvim_win_set_cursor, qf_win, { best_idx, 0 })
+
+      -- Also sync the quickfix list's internal "current index",
+      -- so the next :cnext / :cprevious correctly continues from this position
+      pcall(vim.fn.setqflist, {}, "r", { idx = best_idx })
+    end
+  end,
+})

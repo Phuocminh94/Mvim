@@ -240,6 +240,11 @@ end, "Preview git hunk")
 map("n", "<leader>hs", function()
   require("gitsigns").stage_hunk()
 end, "Stage git hunk")
+map("n", "<leader>hq", function()
+  require("gitsigns").stage_hunk()
+end, "Stage git hunk")
+map("n", "<leader>hq", ":Gitsigns setqflist<CR>", "Quickfix list hunk (buffer)")
+map("n", "<leader>hQ", ":Gitsigns setqflist all<CR>", "Quickfix list hunk (projects)")
 
 -- Lazygit
 map("n", "<leader>lg", function()
