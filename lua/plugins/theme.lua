@@ -1,23 +1,52 @@
-local theme_path = vim.fn.stdpath("config") .. "/lua/minh/theme.lua"
+local theme_path = vim.fn.expand("~/.local/state/omarchy/current/theme/neovim.lua")
 local loop = vim.uv or vim.loop
-local stat = loop.fs_stat(theme_path)
 
-local extra_plugins = {}
+-- Has theme -> Remove LazyVim, empty aether (no colorscheme)
+if loop.fs_stat(theme_path) then
+  local plugins = {
+    {
+      "bjarneo/aether.nvim",
+      branch = "v3",
+      name = "aether",
+      priority = 1000,
+      lazy = false,
+    },
+  }
+  local colorscheme
 
-if stat then
-  local success, result = pcall(dofile, theme_path)
-  if success and type(result) == "table" then
-    extra_plugins = result
+  local ok, result = pcall(dofile, theme_path)
+  if ok and type(result) == "table" then
+    for _, spec in ipairs(result) do
+      if spec[1] == "LazyVim/LazyVim" then
+        colorscheme = spec.opts and spec.opts.colorscheme
+      else
+        spec.lazy = false
+        spec.priority = 1000
+        table.insert(plugins, spec)
+      end
+    end
   end
+
+  if colorscheme then
+    table.insert(plugins, {
+      name = "omarchy-colorscheme",
+      dir = vim.fn.stdpath("config"),
+      lazy = false,
+      priority = 999,
+      config = function()
+        pcall(vim.cmd.colorscheme, colorscheme)
+      end,
+    })
+  end
+
+  return plugins
 end
 
-local has_custom_theme = #extra_plugins > 0
-
-local plugins = {
+-- No theme -> aether with default colorscheme
+return {
   {
     "bjarneo/aether.nvim",
     branch = "v3",
-    enabled = has_custom_theme,
     name = "aether",
     priority = 1000,
     lazy = false,
@@ -66,9 +95,3 @@ local plugins = {
     end,
   },
 }
-
-for _, plugin in ipairs(extra_plugins) do
-  table.insert(plugins, plugin)
-end
-
-return plugins
