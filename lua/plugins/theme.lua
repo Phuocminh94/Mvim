@@ -1,7 +1,7 @@
 local theme_path = vim.fn.expand("~/.local/state/omarchy/current/theme/neovim.lua")
 local loop = vim.uv or vim.loop
 
--- Has theme -> Remove LazyVim, empty aether (no colorscheme)
+-- Has theme -> Remove LazyVim, aether with no colorscheme
 if loop.fs_stat(theme_path) then
   local plugins = {
     {
@@ -42,7 +42,7 @@ if loop.fs_stat(theme_path) then
   return plugins
 end
 
--- No theme -> aether with default colorscheme
+-- No theme -> aether with default colorscheme (miasma)
 return {
   {
     "bjarneo/aether.nvim",
