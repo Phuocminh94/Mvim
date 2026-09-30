@@ -231,3 +231,13 @@ vim.api.nvim_create_autocmd("CursorMoved", {
     end
   end,
 })
+
+-- 15. Use ts for syntax highlighting + enable vimtex
+
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "tex",
+  callback = function(args)
+    vim.treesitter.start(args.buf, "latex")
+    vim.bo[args.buf].syntax = "ON" -- Re-enable VimTeX syntax
+  end,
+})
