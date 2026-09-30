@@ -1,6 +1,27 @@
 local theme_path = vim.fn.expand("~/.local/state/omarchy/current/theme/neovim.lua")
 local loop = vim.uv or vim.loop
 
+local function blend(bg, fg, a)
+  local function ch(c, shift) return bit.band(bit.rshift(c, shift), 0xff) end
+  local function mix(shift)
+    return math.floor(ch(bg, shift) * (1 - a) + ch(fg, shift) * a + 0.5)
+  end
+  return string.format("#%02x%02x%02x", mix(16), mix(8), mix(0))
+end
+
+local function set_colorcolumn()
+  local normal = vim.api.nvim_get_hl(0, { name = "Normal", link = false })
+  if not (normal.bg and normal.fg) then return end
+  local color = blend(normal.bg, normal.fg, 0.12)
+
+  local cl = vim.api.nvim_get_hl(0, { name = "CursorLine", link = false })
+  if cl.bg and string.format("#%06x", cl.bg) == color then
+    color = blend(normal.bg, normal.fg, 0.18)
+  end
+
+  vim.api.nvim_set_hl(0, "ColorColumn", { bg = color })
+end
+
 -- Has theme -> Remove LazyVim, aether with no colorscheme
 if loop.fs_stat(theme_path) then
   local plugins = {
@@ -29,12 +50,13 @@ if loop.fs_stat(theme_path) then
 
   if colorscheme then
     table.insert(plugins, {
-      name = "omarchy-colorscheme",
+      name = "linux-colorscheme",
       dir = vim.fn.stdpath("config"),
       lazy = false,
       priority = 999,
       config = function()
         pcall(vim.cmd.colorscheme, colorscheme)
+        set_colorcolumn()
       end,
     })
   end
