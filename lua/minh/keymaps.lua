@@ -152,6 +152,36 @@ map("n", "<leader>fN", function()
   Snacks.picker.notifications()
 end, "Notification History")
 
+
+map("n", "<leader>fs", function()
+  vim.wo.spell = true
+  local bufnr = vim.api.nvim_get_current_buf()
+  local items = {}
+  for lnum, line in ipairs(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)) do
+    for _, r in ipairs(vim.spell.check(line)) do
+      table.insert(items, {
+        buf = bufnr,
+        pos = { lnum, r[3] - 1 }, -- vim.spell.check returns col 1-based, picker uses 0-based
+        text = r[1] .. " (" .. r[2] .. ")",
+        word = r[1],
+        kind = r[2],
+      })
+    end
+  end
+  Snacks.picker.pick({
+    title = "Spelling errors",
+    items = items,
+    format = function(item)
+      return {
+        { string.format("%4d:%-3d ", item.pos[1], item.pos[2] + 1), "SnacksPickerIdx" },
+        { item.word, "DiagnosticError" },
+        { "  " .. item.kind, "Comment" },
+      }
+    end,
+    -- preview = "none",
+  })
+end,  "Spelling errors (buffer)" )
+
 -------------------------------------------------------------------------------
 -- LSP & DIAGNOSTICS (Autocmd controlled)
 -------------------------------------------------------------------------------
