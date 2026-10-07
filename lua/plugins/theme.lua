@@ -14,9 +14,13 @@ local function set_colorcolumn()
   if not (normal.bg and normal.fg) then return end
   local color = blend(normal.bg, normal.fg, 0.12)
 
-  local cl = vim.api.nvim_get_hl(0, { name = "CursorLine", link = false })
-  if cl.bg and string.format("#%06x", cl.bg) == color then
-    color = blend(normal.bg, normal.fg, 0.18)
+  local color
+  -- If CursorLine has its own Normal.bg -> blend Normal.bg with CursorLine.bg
+  if cl and cl.bg and cl.bg ~= normal.bg then
+    color = blend(normal.bg, cl.bg, 0.5)
+  else
+    -- If CursorLine không có bg -> blend Normal.bg with Normal.fg (12%) to make distinct colors
+    color = blend(normal.bg, normal.fg, 0.12)
   end
 
   vim.api.nvim_set_hl(0, "ColorColumn", { bg = color })

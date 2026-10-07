@@ -14,7 +14,8 @@ map("n", "<Space>", "<Nop>", "Ignore Space")
 -- GENERAL QoL
 -------------------------------------------------------------------------------
 map("i", "jk", "<Esc>", "Exit insert mode")
-map("n", "<leader>nh", "<cmd>nohl<CR>", "Clear search highlights")
+-- map("n", "<leader>nh", "<cmd>nohl<CR>", "Clear search highlights")
+map("n", "<leader>nh", "<cmd>Noice dismiss<CR></cmd>", "Noice dismiss")
 
 -- Better vertical navigation (moves visually through wrapped lines)
 map("n", "j", "gj")
@@ -47,6 +48,7 @@ map("n", "<leader>cd", function()
     vim.notify("Changed directory to " .. dirname, vim.log.levels.INFO)
   end
 end, "Change cwd to file's directory")
+
 
 -------------------------------------------------------------------------------
 -- WINDOW & TAB MANAGEMENT
