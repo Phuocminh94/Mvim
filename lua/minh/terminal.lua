@@ -9,6 +9,10 @@
 --   :FloatTerm id=build layout=bottom height=0.3 cmd=htop cwd=~/proj
 --   :FloatTermPick pick among running terminals
 --
+-- The window title follows the program in the foreground of the terminal
+-- ("zsh" at the prompt, "R" inside an R console, "ipython", "htop"...).
+-- Pass title= to pin a fixed title. Linux only: it reads /proc.
+--
 -- Layout "auto" picks a shape from the editor size each time it opens and
 -- again on VimResized:
 --   wide editor  (>= 160 cols)  -> right panel, full height
@@ -127,8 +131,83 @@ local function find_by_win(win)
   end
 end
 
+local function read_file(path)
+  local f = io.open(path, "r")
+  if not f then
+    return nil
+  end
+  local content = f:read("*a")
+  f:close()
+  return content
+end
+
+--- Name of the program in the foreground of terminal `t`.
+--- The shell's /proc/<pid>/stat holds the terminal's foreground process group
+--- (field 8, "tpgid"); that group's leader names the running program.
+--- Reading the foreground group (not the shell's children) ignores short-lived
+--- helpers such as a prompt calling git. Returns nil when it cannot be read.
+local function foreground_name(t)
+  if not t.job then
+    return nil
+  end
+  local ok, pid = pcall(vim.fn.jobpid, t.job)
+  if not ok then
+    return nil
+  end
+  local stat = read_file("/proc/" .. pid .. "/stat")
+  if not stat then
+    return nil
+  end
+  -- "pid (comm) state ppid pgrp session tty_nr tpgid ..."; comm may contain spaces.
+  local tpgid = stat:match("^%d+ %b() %S+ %S+ %S+ %S+ %S+ (%-?%d+)")
+  local comm = tpgid and read_file("/proc/" .. tpgid .. "/comm")
+  return comm and vim.trim(comm) or nil
+end
+
+--- Update the title from the foreground program; redraw only when it changed.
+local function refresh_title(t)
+  if t.fixed_title then
+    return
+  end
+  local name = foreground_name(t)
+  if not name or name == "" then
+    return
+  end
+  local title = name .. t.suffix
+  if title == t.title then
+    return
+  end
+  t.title = title
+  if t.win and api.nvim_win_is_valid(t.win) then
+    api.nvim_win_set_config(t.win, win_config(t))
+  end
+  vim.cmd.redrawstatus() -- statuslines that show M.title(buf) follow too
+end
+
+--- Poll while the terminal window is open; the timer stops itself when it closes.
+local function watch_title(t)
+  if t.fixed_title or t.timer then
+    return
+  end
+  local timer = (vim.uv or vim.loop).new_timer()
+  t.timer = timer
+  timer:start(
+    500,
+    700,
+    vim.schedule_wrap(function()
+      if not (t.win and api.nvim_win_is_valid(t.win)) then
+        timer:stop()
+        timer:close()
+        t.timer = nil
+        return
+      end
+      refresh_title(t)
+    end)
+  )
+end
+
 local function start_job(t)
-  vim.fn.jobstart(t.cmd or vim.o.shell, {
+  t.job = vim.fn.jobstart(t.cmd or vim.o.shell, {
     term = true,
     cwd = t.cwd,
     on_exit = function(_, code)
@@ -181,6 +260,7 @@ local function show(t)
       start_job(t)
     end
   end
+  watch_title(t)
   vim.cmd.startinsert()
 end
 
@@ -218,6 +298,8 @@ function M.toggle(id, opts)
       width = opts.width,
       height = opts.height,
       title = opts.title or default_title(opts.cmd, count),
+      fixed_title = opts.title ~= nil, -- pinned: do not follow the foreground program
+      suffix = count > 1 and (" #" .. count) or "",
     }
     terms[id] = t
   end
@@ -228,6 +310,16 @@ function M.toggle(id, opts)
     show(t)
   end
   return t
+end
+
+--- Title of the managed terminal that owns `buf` (e.g. "R", "zsh"), or nil.
+--- For statuslines: `require("minh.terminal").title(bufnr)`.
+function M.title(buf)
+  for _, t in pairs(terms) do
+    if t.buf == buf then
+      return t.title
+    end
+  end
 end
 
 --- Zoom the current terminal to fill the editor, or restore its layout.
