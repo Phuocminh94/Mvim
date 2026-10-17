@@ -1,7 +1,7 @@
 local M = {}
 
 -- =============================================================================
--- SNACKS.PICKER HELPER 
+-- SNACKS.PICKER HELPER
 -- =============================================================================
 local function show_toc_with_snacks(results, title)
   local ok, snacks = pcall(require, "snacks")
@@ -35,56 +35,14 @@ local function show_toc_with_snacks(results, title)
 end
 
 -- =============================================================================
--- SECTION: CORE UTILITIES 
+-- SECTION: CORE UTILITIES  (hard-wrap has moved to minh/wrap.lua)
 -- =============================================================================
 
---- Helper: Logic for splitting a long string into a table of wrapped fragments
-local function wrap_string(text, n)
-  local result = {}
-  local line = text
-  while #line > n do
-    local segment = line:sub(1, n)
-    -- Capture position of the last space within the segment
-    local break_at = segment:match(".*()%s") 
-
-    if break_at then
-      table.insert(result, line:sub(1, break_at - 1))
-      -- Move 'line' to after the space, trimming leading whitespace
-      line = line:sub(break_at + 1):gsub("^%s*", "")
-    else
-      -- Force break if no space found
-      table.insert(result, line:sub(1, n))
-      line = line:sub(n + 1)
-    end
-  end
-  table.insert(result, line)
-  return result
-end
-
---- Engine: Handles buffer I/O and loops through lines using a skip-rule
-local function apply_hardwrap(n, should_skip_fn)
-  n = n or 80
-  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-  local wrapped = {}
-
-  for _, line in ipairs(lines) do
-    if should_skip_fn(line) then
-      table.insert(wrapped, line)
-    else
-      local fragments = wrap_string(line, n)
-      for _, f in ipairs(fragments) do
-        table.insert(wrapped, f)
-      end
-    end
-  end
-  vim.api.nvim_buf_set_lines(0, 0, -1, false, wrapped)
-end
-
---- Engine: Scans lines and builds a table of contents based on a parser-rule
+--- Engine: scans lines and builds a table of contents using a parser rule.
 local function build_toc_data(parser_fn)
   local results = {}
   local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-  
+
   for lnum, line in ipairs(lines) do
     local entry = parser_fn(line, lnum)
     if entry then
@@ -98,40 +56,6 @@ local function build_toc_data(parser_fn)
 end
 
 -- =============================================================================
--- SECTION: HARDWRAP LOGIC (THE RULES)
--- =============================================================================
-
-M.hardwrap_md = function(n)
-  local in_math_block = false
-  
-  apply_hardwrap(n, function(line)
-    local trimmed = line:match("^%s*(.-)%s*$")
-    
-    -- Handle Block Toggles
-    local is_toggle = trimmed == "$$" or trimmed == "\\[" or trimmed == "\\]" or trimmed:find("^```")
-    if is_toggle then
-      in_math_block = not in_math_block
-      return true 
-    end
-
-    -- Skip rules
-    return in_math_block 
-      or trimmed:find("^#")           -- headers
-      or trimmed:find("^`")           -- inline code
-      or trimmed:find("^%$")          -- inline math
-      or trimmed:find("^\\%(")        -- latex inline math
-      or trimmed:find("^%|")          -- markdown table
-  end)
-end
-
-M.hardwrap_tex = function(n)
-  apply_hardwrap(n, function(line)
-    -- Skip lines starting with \ (commands) except \item
-    return line:match("^%s*\\") and not line:match("^%s*\\item")
-  end)
-end
-
--- =============================================================================
 -- SECTION: TABLE OF CONTENTS (THE RULES)
 -- =============================================================================
 
@@ -141,7 +65,7 @@ M.markdown_toc = function(toc_name)
   local catch_next_line = false
 
   local results = build_toc_data(function(line)
-    if line:match("^```") then
+    if line:match("^%s*```") or line:match("^%s*~~~") then
       inside_code_block = not inside_code_block
       return nil
     end
@@ -150,7 +74,7 @@ M.markdown_toc = function(toc_name)
 
     -- for gp.nvim chat buffer
     if catch_next_line then
-      if line:match("^%s*$") then return nil end 
+      if line:match("^%s*$") then return nil end
 
       catch_next_line = false
       return { level = 1, display_text = "💬 MBP: " .. line }
@@ -162,7 +86,7 @@ M.markdown_toc = function(toc_name)
         return { level = 1, display_text = "💬 MBP: " .. inline_text }
       else
         catch_next_line = true
-        return nil 
+        return nil
       end
     end
 
@@ -178,7 +102,7 @@ end
 
 M.latex_toc = function()
   local levels = {
-    part = 1, chapter = 2, section = 3, 
+    part = 1, chapter = 2, section = 3,
     subsection = 4, subsubsection = 5, paragraph = 6,
   }
 
@@ -188,11 +112,11 @@ M.latex_toc = function()
 
     -- Match \section{Title} or \section*{Title}
     local cmd, title = line:match("\\(%a+)%*?%s*%{(.-)%}")
-    
+
     if cmd and levels[cmd] then
-      return { 
-        level = levels[cmd], 
-        display_text = string.format("\\%s: %s", cmd, title) 
+      return {
+        level = levels[cmd],
+        display_text = string.format("\\%s: %s", cmd, title)
       }
     end
   end)

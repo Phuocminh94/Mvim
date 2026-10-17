@@ -1,116 +1,153 @@
+-- =============================================================================
+-- minh.lsp_utils — shared LSP setup (Neovim 0.11+)
+--
+-- Call require("minh.lsp_utils").setup() once (see plugins/mason.lua).
+-- Per-server files are then only needed to override nvim-lspconfig defaults,
+-- and those belong in after/lsp/<name>.lua.
+-- =============================================================================
+
 local M = {}
 
---- Setup global UI elements like borders and diagnostics
+local api = vim.api
+local border = "rounded"
+
+--- Borders and diagnostics.
 M.setup_ui = function()
-  local border = "rounded"
+  -- One option for every floating window: hover, signature help, diagnostics.
+  -- (Overriding vim.lsp.handlers["textDocument/hover"] no longer works:
+  -- since 0.11, vim.lsp.buf.hover() does not go through vim.lsp.handlers.)
+  vim.o.winborder = border
 
-  -- Add border to LSP hover
-  vim.lsp.handlers["textDocument/hover"] = function(err, result, ctx, config)
-    config = config or {}
-    config.border = border
-    return vim.lsp.handlers.hover(err, result, ctx, config)
-  end
-
-  -- Add border to LSP signature help
-  vim.lsp.handlers["textDocument/signatureHelp"] = function(err, result, ctx, config)
-    config = config or {}
-    config.border = border
-    return vim.lsp.handlers.signature_help(err, result, ctx, config)
-  end
-
-  -- Global diagnostic config (updated for Nvim 0.10+)
   vim.diagnostic.config({
     virtual_text = false,
-    -- Pass the icons directly into the signs table here
     signs = {
       text = {
         [vim.diagnostic.severity.ERROR] = "󰅚 ",
-        [vim.diagnostic.severity.WARN]  = " ",
-        [vim.diagnostic.severity.HINT]  = "󰛩 ",
-        [vim.diagnostic.severity.INFO]  = " ",
+        [vim.diagnostic.severity.WARN] = " ",
+        [vim.diagnostic.severity.HINT] = "󰛩 ",
+        [vim.diagnostic.severity.INFO] = " ",
       },
     },
     update_in_insert = false,
     float = {
       border = border,
-      source = "always",       -- show diagnostic source
+      source = true, -- "always" is the pre-0.10 spelling; true or "if_many" now
     },
   })
 
-  -- Only underline symbol under cursor
-  vim.api.nvim_set_hl(0, "LspReferenceText", { bg = "NONE", fg = "NONE", underline = true })
-  vim.api.nvim_set_hl(0, "LspReferenceRead", { bg = "NONE", fg = "NONE", underline = true })
-  vim.api.nvim_set_hl(0, "LspReferenceWrite", { bg = "NONE", fg = "NONE", underline = true })
+  -- References under the cursor (LspReferenceText/Read/Write) keep the
+  -- colorscheme's background highlight; Neovim's default links them to Visual.
 end
 
---- Highlight symbol under cursor
-local function lsp_highlight_document(client, bufnr)
-  -- Modern check using server_capabilities
-  if client.server_capabilities.documentHighlightProvider then
-    local hl_augroup = vim.api.nvim_create_augroup("lsp_document_highlight", { clear = false })
+--- Completion capabilities (a table, or nil for Neovim's defaults).
+--- nvim-cmp needs cmp_nvim_lsp's table. (blink.cmp 1.x registers its own on 0.11+.)
+local function default_capabilities()
+  local ok, cmp_lsp = pcall(require, "cmp_nvim_lsp")
+  return ok and cmp_lsp.default_capabilities() or nil
+end
+M.capabilities = default_capabilities()
 
-    -- Clear existing autocmds for this buffer to prevent duplicates on reload
-    vim.api.nvim_clear_autocmds({ buffer = bufnr, group = hl_augroup })
+-- -----------------------------------------------------------------------------
+-- Per-buffer features, attached through LspAttach so they work for every
+-- server, including ones enabled by mason-lspconfig with no file of their own.
+-- -----------------------------------------------------------------------------
 
-    vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
-      group = hl_augroup,
-      buffer = bufnr,
-      callback = vim.lsp.buf.document_highlight,
-    })
+local hl_group = api.nvim_create_augroup("MinhLspDocumentHighlight", { clear = true })
+local sig_group = api.nvim_create_augroup("MinhLspSignature", { clear = true })
 
-    vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
-      group = hl_augroup,
-      buffer = bufnr,
-      callback = vim.lsp.buf.clear_references,
-    })
+--- Highlight other uses of the symbol under the cursor after 'updatetime'.
+local function highlight_references(client, bufnr)
+  if not client:supports_method("textDocument/documentHighlight", bufnr) then
+    return
   end
+  -- Several clients may attach to one buffer; keep a single set of autocmds.
+  api.nvim_clear_autocmds({ group = hl_group, buffer = bufnr })
+  api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
+    group = hl_group,
+    buffer = bufnr,
+    callback = vim.lsp.buf.document_highlight,
+  })
+  api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+    group = hl_group,
+    buffer = bufnr,
+    callback = vim.lsp.buf.clear_references,
+  })
 end
 
---- Buffer-Local Auto-Signature Setup
-local function check_triggeredChars(triggerChars)
-  local cur_line = vim.api.nvim_get_current_line()
-  local pos = vim.api.nvim_win_get_cursor(0)[2]
-  local prev_char = cur_line:sub(pos - 1, pos - 1)
-  local cur_char = cur_line:sub(pos, pos)
+--- Open signature help while typing right after a trigger character, e.g. "(" or ",".
+local function auto_signature(client, bufnr)
+  local provider = client.server_capabilities.signatureHelpProvider
+  if not (provider and provider.triggerCharacters) then
+    return
+  end
+  local triggers = {}
+  for _, ch in ipairs(provider.triggerCharacters) do
+    triggers[ch] = true
+  end
 
-  for _, char in ipairs(triggerChars) do
-    if cur_char == char or prev_char == char then
+  api.nvim_clear_autocmds({ group = sig_group, buffer = bufnr })
+  api.nvim_create_autocmd("TextChangedI", {
+    group = sig_group,
+    buffer = bufnr,
+    callback = function()
+      local line = api.nvim_get_current_line()
+      local col = api.nvim_win_get_cursor(0)[2] -- 0-based byte column
+      -- The character just typed, or the one before it (keeps the popup up
+      -- while typing the first character of an argument).
+      if triggers[line:sub(col, col)] or triggers[line:sub(col - 1, col - 1)] then
+        vim.lsp.buf.signature_help({ focus = false, silent = true, max_height = 10 })
+      end
+    end,
+  })
+end
+
+--- True when another client attached to `bufnr` still supports `method`.
+local function others_support(bufnr, method, leaving_id)
+  for _, c in ipairs(vim.lsp.get_clients({ bufnr = bufnr, method = method })) do
+    if c.id ~= leaving_id then
       return true
     end
   end
   return false
 end
 
-local function setup_auto_signature(client, bufnr)
-  -- SAFETY CHECK: Ensure the language server actually supports signature help
-  local signature_provider = client.server_capabilities.signatureHelpProvider
-  if not signature_provider or not signature_provider.triggerCharacters then
-    return     -- Exit silently if the server doesn't support it
-  end
+M.setup = function()
+  M.setup_ui()
 
-  local triggerChars = signature_provider.triggerCharacters
-  local group = vim.api.nvim_create_augroup("LspSignature", { clear = false })
+  -- Defaults merged into every server config before its own settings.
+  vim.lsp.config("*", { capabilities = M.capabilities })
 
-  vim.api.nvim_clear_autocmds({ group = group, buffer = bufnr })
+  -- Mason does not install the R server (it is an R package), so
+  -- mason-lspconfig cannot auto-enable it. Requires install.packages("languageserver").
+  vim.lsp.enable("r_language_server")
 
-  vim.api.nvim_create_autocmd("TextChangedI", {
+  local group = api.nvim_create_augroup("MinhLspAttach", { clear = true })
+  api.nvim_create_autocmd("LspAttach", {
     group = group,
-    buffer = bufnr,
-    callback = function()
-      if check_triggeredChars(triggerChars) then
-        vim.lsp.buf.signature_help({ focus = false, silent = true, max_height = 10, border = "rounded" })
+    callback = function(ev)
+      local client = vim.lsp.get_client_by_id(ev.data.client_id)
+      if client then
+        highlight_references(client, ev.buf)
+        auto_signature(client, ev.buf)
+      end
+    end,
+  })
+
+  -- Remove the autocmds when the last capable client leaves the buffer, so
+  -- CursorHold does not keep sending requests after :LspStop / :LspRestart.
+  api.nvim_create_autocmd("LspDetach", {
+    group = group,
+    callback = function(ev)
+      local id = ev.data.client_id
+      if not others_support(ev.buf, "textDocument/documentHighlight", id) then
+        vim.lsp.buf.clear_references()
+        api.nvim_clear_autocmds({ group = hl_group, buffer = ev.buf })
+      end
+      if not others_support(ev.buf, "textDocument/signatureHelp", id) then
+        api.nvim_clear_autocmds({ group = sig_group, buffer = ev.buf })
       end
     end,
   })
 end
-
---- Shared on_attach function to pass to each server
-M.on_attach = function(client, bufnr)
-  lsp_highlight_document(client, bufnr)
-  setup_auto_signature(client, bufnr)
-end
-
---- Base capabilities
-M.capabilities = vim.lsp.protocol.make_client_capabilities()
 
 return M

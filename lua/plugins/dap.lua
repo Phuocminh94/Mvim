@@ -4,8 +4,19 @@ return {
     dependencies = {
       "rcarriga/nvim-dap-ui",
       "nvim-neotest/nvim-nio",
-      "williamboman/mason.nvim",
+      "mason-org/mason.nvim",
       "jay-babu/mason-nvim-dap.nvim",
+    },
+    -- Load DAP (and dap-ui, nio) on the first debug key instead of at startup.
+    keys = {
+      { "<leader>db", function() require("dap").toggle_breakpoint() end, desc = "DAP: Toggle Breakpoint" },
+      { "<leader>dc", function() require("dap").continue() end, desc = "DAP: Continue / Start" },
+      { "<leader>di", function() require("dap").step_into() end, desc = "DAP: Step Into" },
+      { "<leader>do", function() require("dap").step_over() end, desc = "DAP: Step Over" },
+      { "<leader>du", function() require("dap").step_out() end, desc = "DAP: Step Out" },
+      { "<leader>dr", function() require("dap").repl.open() end, desc = "DAP: Open REPL" },
+      { "<leader>dt", function() require("dapui").toggle() end, desc = "DAP: Toggle UI" },
+      { "<leader>dx", function() require("dap").terminate() end, desc = "DAP: Terminate Session" },
     },
     config = function()
       local dap = require("dap")
@@ -14,7 +25,7 @@ return {
       require("mason-nvim-dap").setup({
         ensure_installed = { "python" },
         automatic_installation = true,
-        handlers = {},
+        handlers = {}, -- default adapter/configuration setup for each installed adapter
       })
 
       dapui.setup({
@@ -22,23 +33,14 @@ return {
         mappings = { expand = { "<CR>", "<2-LeftMouse>" }, open = "o" },
       })
 
-      dap.listeners.before.attach.dapui_config = function() dapui.open() end
-      dap.listeners.before.launch.dapui_config = function() dapui.open() end
-      dap.listeners.before.event_terminated.dapui_config = function() dapui.close() end
-      dap.listeners.before.event_exited.dapui_config = function() dapui.close() end
+      -- Open the UI when a session starts. It is not closed automatically on
+      -- exit, so the output and the last variables stay readable; close with <leader>dt.
+      dap.listeners.before.attach.dapui_config = dapui.open
+      dap.listeners.before.launch.dapui_config = dapui.open
 
-      local keymap = vim.keymap.set
-      keymap("n", "<leader>db", dap.toggle_breakpoint, { desc = "DAP: Toggle Breakpoint" })
-      keymap("n", "<leader>dc", dap.continue, { desc = "DAP: Continue / Start" })
-      keymap("n", "<leader>di", dap.step_into, { desc = "DAP: Step Into" })
-      keymap("n", "<leader>do", dap.step_over, { desc = "DAP: Step Over" })
-      keymap("n", "<leader>du", dap.step_out, { desc = "DAP: Step Out" })
-      keymap("n", "<leader>dr", dap.repl.open, { desc = "DAP: Open REPL" })
-      keymap("n", "<leader>dt", dapui.toggle, { desc = "DAP: Toggle UI" })
-      keymap("n", "<leader>dx", dap.terminate, { desc = "DAP: Terminate Session" })
-
-      vim.fn.sign_define("DapBreakpoint", { text = "🔴", texthl = "", linehl = "", numhl = "" })
-      vim.fn.sign_define("DapStopped", { text = "▶️", texthl = "", linehl = "Visual", numhl = "" })
+      -- Single-width signs: emoji such as 🔴 / ▶️ take two cells and shift the sign column.
+      vim.fn.sign_define("DapBreakpoint", { text = "●", texthl = "DiagnosticError" })
+      vim.fn.sign_define("DapStopped", { text = "→", texthl = "DiagnosticWarn", linehl = "Visual" })
     end,
   },
 }

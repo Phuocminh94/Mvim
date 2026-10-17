@@ -21,6 +21,10 @@ return {
 		local cmp = require("cmp")
 
 		local luasnip = require("luasnip")
+    luasnip.config.setup({
+      region_check_events = "InsertEnter",
+      delete_check_events = "TextChanged,InsertLeave",
+    })
 
 		local lspkind = require("lspkind")
 
@@ -35,7 +39,7 @@ return {
 		cmp.setup({
 			-- Automatically highlight the first option
 			completion = {
-				completeopt = "menu,menuone,noinsert,select",
+				completeopt = "menu,menuone,noinsert",
 			},
 
 			-- See also minh.lsp_util for the signature panel UI
@@ -98,7 +102,7 @@ return {
 					end
 				end, { "i", "s" }),
 				["<S-Tab>"] = cmp.mapping(function(fallback)
-					if luasnip.jumpable(-1) then
+					if luasnip.locally_jumpable(-1) then
 						luasnip.jump(-1)
 					else
 						fallback()

@@ -1,35 +1,18 @@
 local utils = require("minh.utils")
 
-local filename = vim.fn.expand("%:t")
-local is_ai_buff = filename:match("^%d%d%d%d") ~= nil
+-- gp.nvim chat buffers have names starting with 4 digits (date and time).
+local is_ai_buf = vim.fn.expand("%:t"):match("^%d%d%d%d") ~= nil
 
+-- Default width; override per file with a modeline
+--   <!-- vim: set tw=100: -->
+-- or temporarily with :setlocal tw=100
 vim.opt_local.textwidth = 80
-vim.opt_local.colorcolumn = (not is_ai_buff) and "80" or ""
+-- "+1" = column right after textwidth, so it follows when tw changes.
+vim.opt_local.colorcolumn = is_ai_buf and "" or "+1"
 
---- ==================== KEYMAPS ====================
-
-vim.keymap.set("n", "<leader>wr", function()
-  local current_ft = vim.bo.filetype
-  
-  if current_ft == "tex" then
-    utils.hardwrap_tex(80)
-  else
-    utils.hardwrap_md(80)
-  end
-end, { desc = "Hard Wrap 80" })
+-- gq / gqip / <leader>wr / <leader>wR / :Wrap
+require("minh.wrap").attach()
 
 vim.keymap.set("n", "<leader>tc", function()
-  local current_file = vim.fn.expand("%:t")
-  local is_ai = current_file:match("^%d%d%d%d") ~= nil
-  
-  local toc_name = is_ai and "Chat History Outline" or "Table of Content"
-  utils.markdown_toc(toc_name)
-end, { desc = "Table of Content" })
-
---- ==================== PLUGINS ====================
-require('img-clip').setup({
-  default = {
-    dir_path = vim.g.note_path .. 'assets/images',
-    use_absolute_path = true
-  }
-})
+  utils.markdown_toc(is_ai_buf and "Chat History Outline" or "Table of Content")
+end, { buffer = true, desc = "Table of Content" })

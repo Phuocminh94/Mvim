@@ -15,11 +15,11 @@ map("n", "<Space>", "<Nop>", "Ignore Space")
 -------------------------------------------------------------------------------
 map("i", "jk", "<Esc>", "Exit insert mode")
 -- map("n", "<leader>nh", "<cmd>nohl<CR>", "Clear search highlights")
-map("n", "<leader>nh", "<cmd>Noice dismiss<CR></cmd>", "Noice dismiss")
+map("n", "<leader>nh", "<cmd>Noice dismiss<CR>", "Noice dismiss")
 
--- Better vertical navigation (moves visually through wrapped lines)
-map("n", "j", "gj")
-map("n", "k", "gk")
+-- Move by screen line through wrapped text, but keep counts (5j, 10k) linewise
+map({ "n", "x" }, "j", "v:count == 0 ? 'gj' : 'j'", nil, { expr = true })
+map({ "n", "x" }, "k", "v:count == 0 ? 'gk' : 'k'", nil, { expr = true })
 
 -- Join lines while keeping the cursor in place (by @ThePrimeagen)
 map("n", "J", "mzJ`z")
@@ -33,7 +33,7 @@ map("n", "<C-u>", "<C-u>zzzv")
 -- Spell check autocorrect
 map("i", "<C-z>", "<C-g>u<Esc>[s1z=`]a<C-g>u", "Auto-correct last typo")
 
--- Terminal Mode
+-- Terminal Mode (minh.terminal restores <Esc> for program terminals like lazygit)
 map("t", "<Esc>", [[<C-\><C-n>]], "Exit terminal mode")
 
 -- Change working directory to current file
@@ -75,7 +75,7 @@ map("n", "<C-w>l", "<cmd>vertical resize +2<CR>", "Increase width")
 map("n", "<leader>tn", "<cmd>tabnew<CR>", "Open new tab")
 map("n", "<leader>td", "<cmd>tabclose<CR>", "Close tab")
 map("n", "<leader>tf", "<cmd>tabnew %<CR>", "Move buffer to tab")
-map("n", "<leader>tcd", function()
+map("n", "<leader>tN", function()
   vim.ui.input({ prompt = "Enter directory: ", completion = "dir" }, function(path)
     if path and path ~= "" then
       vim.cmd("tabnew")
@@ -87,7 +87,7 @@ end, "Open new tab with specific CWD")
 -------------------------------------------------------------------------------
 -- PLUGINS & PICKERS
 -------------------------------------------------------------------------------
--- NERDTree
+-- Neo-tree
 map("n", "<leader>e", "<cmd>Neotree toggle<CR>", "Toggle File Explorer")
 
 -- Quickfix list
@@ -96,14 +96,18 @@ map("n", "[q", "<cmd>cprev<CR>", "Prev quickfix item")
 
 -- EasyAlign / Sort
 map({ "n", "x" }, "ga", "<Plug>(EasyAlign)", "EasyAlign")
-map("v", "<leader>s", ":sort /^\\s*/<CR>", "Sort lines")
+map("x", "<leader>s", ":sort /^\\s*/<CR>", "Sort lines")
 
 -- Utilities
 map("n", "<leader>md", "<cmd>MarkdownPreviewToggle<CR>", "Toggle Markdown Preview")
-map({ "n", "t" }, "<A-/>", function() -- <C-/> conflicts with Tmux
+-- <C-/> conflicts with Tmux. A count picks the terminal number: 2<A-/>
+map({ "n", "t" }, "<A-/>", function()
   local opts = vim.fn.has("win32") == 1 and { cmd = "powershell" } or {}
   require("minh.terminal").toggle(nil, opts)
-end, "Toggle Floatterm")
+end, "Toggle terminal")
+map("n", "<leader>ft", function()
+  require("minh.terminal").pick()
+end, "Find terminals")
 map("n", "<A-c>", "<cmd>ColorizerToggle<CR>", "Toggle Colorizer")
 map("n", "<leader>p", "<cmd>PasteImage<CR>", "Paste Image (img-clip)")
 
@@ -119,7 +123,7 @@ map("n", "<leader>fo", function()
 end, "Recent Files")
 
 map("n", "<leader>fg", function()
-  Snacks.picker.grep(ivy_config)
+  Snacks.picker.grep()
 end, "Grep")
 
 map("n", "<leader>fh", function()
@@ -176,13 +180,13 @@ map("n", "<leader>fs", function()
     format = function(item)
       return {
         { string.format("%4d:%-3d ", item.pos[1], item.pos[2] + 1), "SnacksPickerIdx" },
-        { item.word, "DiagnosticError" },
-        { "  " .. item.kind, "Comment" },
+        { item.word,                                                "DiagnosticError" },
+        { "  " .. item.kind,                                        "Comment" },
       }
     end,
     -- preview = "none",
   })
-end,  "Spelling errors (buffer)" )
+end, "Spelling errors (buffer)")
 
 -------------------------------------------------------------------------------
 -- LSP & DIAGNOSTICS (Autocmd controlled)
@@ -211,23 +215,25 @@ vim.api.nvim_create_autocmd("LspAttach", {
       Snacks.picker.lsp_declarations()
     end, "Goto Declaration")
 
-    lsp_map("n", "gi", function()
+    lsp_map("n", "gri", function()
       Snacks.picker.lsp_implementations()
     end, "Goto Implementation")
 
-    lsp_map("n", "gr", function()
+    -- nowait: Neovim 0.11+ has global gra/grn/grr/gri..., which would make a
+    -- plain `gr` wait for 'timeoutlen' before firing.
+    vim.keymap.set("n", "gr", function()
       Snacks.picker.lsp_references()
-    end, "Find references")
+    end, { buffer = ev.buf, silent = true, nowait = true, desc = "Find references" })
 
     lsp_map("n", "gy", function()
       Snacks.picker.lsp_type_definitions()
     end, "Type Definition")
 
-    lsp_map("n", "gai", function()
+    lsp_map("n", "gci", function()
       Snacks.picker.lsp_incoming_calls()
     end, "Calls Incoming")
 
-    lsp_map("n", "gao", function()
+    lsp_map("n", "gco", function()
       Snacks.picker.lsp_outgoing_calls()
     end, "Calls Outgoing")
 
@@ -237,20 +243,21 @@ vim.api.nvim_create_autocmd("LspAttach", {
     lsp_map("n", "<leader>sd", function()
       Snacks.picker.diagnostics()
     end, "LSP Diagnostics")
-
-    -- Formatting
-    lsp_map({ "n", "v" }, "<leader>fm", function()
-      require("conform").format({ lsp_fallback = true, async = false })
-    end, "Format file/buffer")
   end,
 })
 
--- Toggle diagnostic signs
+-- Formatting is global: conform also runs formatters for buffers without an LSP
+-- (prettier for markdown, sqlfluff, stylua...). `lsp_fallback` is deprecated.
+map({ "n", "x" }, "<leader>fm", function()
+  require("conform").format({ lsp_format = "fallback", async = false })
+end, "Format file/selection")
+
+-- Toggle diagnostics (signs, virtual text and underline together)
 map("n", "<leader>ds", function()
-  local is_enabled = vim.diagnostic.is_enabled()
-  vim.diagnostic.enable(not is_enabled)
-  print("Diagnostic signs: " .. (is_enabled and "OFF" or "ON"))
-end, "Toggle diagnostic signs")
+  local enabled = not vim.diagnostic.is_enabled()
+  vim.diagnostic.enable(enabled)
+  vim.notify("Diagnostics: " .. (enabled and "ON" or "OFF"), vim.log.levels.INFO)
+end, "Toggle diagnostics")
 
 -------------------------------------------------------------------------------
 -- GIT
@@ -272,37 +279,19 @@ end, "Preview git hunk")
 map("n", "<leader>hs", function()
   require("gitsigns").stage_hunk()
 end, "Stage git hunk")
-map("n", "<leader>hq", function()
-  require("gitsigns").stage_hunk()
-end, "Stage git hunk")
 map("n", "<leader>hq", ":Gitsigns setqflist<CR>", "Quickfix list hunk (buffer)")
 map("n", "<leader>hQ", ":Gitsigns setqflist all<CR>", "Quickfix list hunk (projects)")
 
--- Lazygit
+-- Lazygit: one instance per cwd; minh.terminal closes it when lazygit exits
 map("n", "<leader>lg", function()
-  if vim.fn.executable("lazygit") == 1 then
-    local opts = {
-      x = 0.5,
-      y = 0.5,
-      width = math.floor(0.8 * vim.o.columns),
-      height = math.floor(0.8 * vim.o.lines),
-      cmd = "lazygit",
-    }
-    local id = "lazygit"
-
-    require("minh.terminal").toggle(id, opts)
-    local current_buf = vim.api.nvim_get_current_buf()
-
-    -- Create a one-shot autocmd to clean up this specific buffer on exit
-    vim.api.nvim_create_autocmd("TermClose", {
-      buffer = current_buf, -- Only trigger for this specific terminal buffer
-      once = true,          -- Run once and self-destruct to prevent memory leaks
-      callback = function()
-        -- Force wipe out the buffer once the process (lazygit) exits
-        vim.cmd("bdelete!")
-      end,
-    })
-  else
+  if vim.fn.executable("lazygit") ~= 1 then
     vim.notify("'lazygit' not yet installed!", vim.log.levels.WARN)
+    return
   end
+  require("minh.terminal").toggle("lazygit:" .. vim.fn.getcwd(), {
+    cmd = "lazygit",
+    layout = "center",
+    width = 0.9,
+    height = 0.9,
+  })
 end, "Lazygit")

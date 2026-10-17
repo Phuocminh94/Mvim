@@ -1,18 +1,21 @@
 return {
   {
-    "williamboman/mason-lspconfig.nvim",
+    -- The repos moved from williamboman/* to mason-org/* (GitHub redirects the old URLs).
+    "mason-org/mason-lspconfig.nvim",
     opts = {
-      -- list of servers for mason to install
+      -- Servers for Mason to install. mason-lspconfig v2 also calls
+      -- vim.lsp.enable() for every installed server (automatic_enable = true),
+      -- so do not enable them again elsewhere.
       ensure_installed = {
         "lua_ls",
-        "basedpyright"
+        "basedpyright",
       },
     },
     dependencies = {
       {
-        "williamboman/mason.nvim",
+        "mason-org/mason.nvim",
         opts = {
-          PATH = "append", -- Prioritize system/user global binaries over Mason-installed ones`
+          PATH = "append", -- prefer system/user binaries over Mason-installed ones
           ui = {
             icons = {
               package_installed = "✓",
@@ -22,7 +25,14 @@ return {
           },
         },
       },
-      {"neovim/nvim-lspconfig"}
+      {
+        "neovim/nvim-lspconfig",
+        -- Runs before mason-lspconfig enables servers: borders, diagnostics,
+        -- capabilities, LspAttach features and the R server.
+        config = function()
+          require("minh.lsp_utils").setup()
+        end,
+      },
+    },
   },
-}
 }

@@ -71,25 +71,32 @@ autocmd("BufWinEnter", {
 	desc = "avoid auto insert comment on newline",
 	group = custom,
 	callback = function()
-		vim.opt.formatoptions:remove({ "c", "r", "o" })
+		-- opt_local: only this buffer (vim.opt would also change the global value)
+		vim.opt_local.formatoptions:remove({ "c", "r", "o" })
 	end,
 })
 
 -- 7. Executable Path Detection (Generic)
-local set_exe_path = function(ft, exe_name, global_var)
-	local path = vim.fn.exepath(exe_name)
-	if path ~= "" then
-		vim.g[global_var] = path
-	else
-		vim.notify(exe_name .. " not found in PATH", vim.log.levels.WARN)
+-- Resolve once per session; try each candidate name in order.
+local set_exe_path = function(global_var, candidates)
+	if vim.g[global_var] then
+		return
 	end
+	for _, exe in ipairs(candidates) do
+		local path = vim.fn.exepath(exe)
+		if path ~= "" then
+			vim.g[global_var] = path
+			return
+		end
+	end
+	vim.notify(table.concat(candidates, "/") .. " not found in PATH", vim.log.levels.WARN)
 end
 
 autocmd("FileType", {
 	pattern = "python",
 	group = custom,
 	callback = function()
-		set_exe_path("python", "python", "py_path")
+		set_exe_path("py_path", { "python3", "python" })
 	end,
 })
 
@@ -97,62 +104,42 @@ autocmd("FileType", {
 	pattern = "r",
 	group = custom,
 	callback = function()
-		set_exe_path("r", "R", "r_path")
+		set_exe_path("r_path", { "R" })
 	end,
 })
 
--- 8. Hide the statusline when entering the dashboard buffer
-local dashboard_status_group = vim.api.nvim_create_augroup("HideStatuslineOnDashboard", { clear = true })
-
-vim.api.nvim_create_autocmd({ "FileType", "BufEnter" }, {
+-- 8. Hide the statusline on the dashboard, restore it when leaving
+autocmd({ "FileType", "BufEnter" }, {
 	pattern = "dashboard",
-	group = dashboard_status_group,
+	group = custom,
 	callback = function()
 		vim.opt.laststatus = 0
 	end,
 })
 
-vim.api.nvim_create_autocmd("BufLeave", {
-	pattern = "*",
-	group = dashboard_status_group,
+autocmd("BufLeave", {
+	group = custom,
 	callback = function()
-		if vim.bo.filetype == "dashboard" and vim.bo.filetype ~= "TelescopePrompt" then
+		if vim.bo.filetype == "dashboard" then
 			vim.opt.laststatus = 3
 		end
 	end,
 })
 
--- 9. Telescope: Hide statusline if called from Dashboard
-vim.api.nvim_create_autocmd("FileType", {
-	pattern = "TelescopePrompt",
-	group = dashboard_status_group,
-	callback = function()
-		for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
-			if vim.api.nvim_get_option_value("filetype", { buf = bufnr }) == "dashboard" then
-				vim.opt.laststatus = 0
-				break
-			end
-		end
-	end,
-})
-
 -- 10. Snacks.indent
-vim.api.nvim_create_autocmd("FileType", {
+autocmd("FileType", {
+	group = custom,
 	pattern = { "dashboard", "markdown", "txt", "dbout", "sql", "plsql", "mysql", "qmd", "rmd" },
 	callback = function()
 		vim.b.snacks_indent = false
 	end,
 })
 
--- 11. Exclude google drive's item from old files
-vim.api.nvim_create_autocmd("BufReadPre", {
-	callback = function()
-		local path = vim.api.nvim_buf_get_name(0)
-		if path:find("^/home/mbp/Cloud/gdrive/") then
-			vim.opt_local.shadafile = "NONE"
-		end
-	end,
-})
+-- 11. Keep Google Drive files out of oldfiles / recent files.
+-- The shada "r" flag marks a path as removable media: no marks or oldfiles
+-- are stored for it. (Setting 'shadafile' per buffer did not work: it is a
+-- global option, so opening one gdrive file disabled shada for the session.)
+vim.opt.shada:append("r" .. vim.fn.expand("~/Cloud/gdrive/"))
 
 -- 12. Force UI redraw on command-line changes to fix stuck LSP/search artifacts (noice.nvim)
 local redraw_group = vim.api.nvim_create_augroup("update_search_redraw", { clear = true })
@@ -164,77 +151,65 @@ vim.api.nvim_create_autocmd("CmdlineChanged", {
 	end,
 })
 
--- 13. Remove items from qf list
-vim.api.nvim_create_autocmd("FileType", {
+-- 13. Remove items from quickfix / location list with dd (keeps the title)
+autocmd("FileType", {
+  group = custom,
   pattern = "qf",
-  callback = function()
+  callback = function(ev)
     vim.keymap.set("n", "dd", function()
-      local qf = vim.fn.getqflist()
-      local idx = vim.fn.line(".")
-      if idx <= #qf then
-        table.remove(qf, idx)
-        vim.fn.setqflist(qf, "r")
+      local is_loc = vim.fn.win_gettype() == "loclist"
+      local what = { items = 0, title = 0 }
+      local list = is_loc and vim.fn.getloclist(0, what) or vim.fn.getqflist(what)
+      local lnum = vim.fn.line(".")
+      if lnum > #list.items then
+        return
       end
-    end, { buffer = true, silent = true })
+      table.remove(list.items, lnum)
+      local new = { items = list.items, title = list.title }
+      if is_loc then
+        vim.fn.setloclist(0, {}, "r", new)
+      else
+        vim.fn.setqflist({}, "r", new)
+      end
+      vim.api.nvim_win_set_cursor(0, { math.max(1, math.min(lnum, #list.items)), 0 })
+    end, { buffer = ev.buf, silent = true, desc = "Remove item" })
   end,
 })
 
--- 14. Auto sync quickfix item based on cursor position (by claude)
-vim.api.nvim_create_autocmd("CursorMoved", {
-  group = vim.api.nvim_create_augroup("QfSyncWithCursor", { clear = true }),
+-- 14. Auto sync quickfix item based on cursor position
+autocmd("CursorMoved", {
+  group = custom,
   callback = function()
-    -- Find the actual quickfix window currently visible on screen
-    local qf_win = nil
-    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-      local buf = vim.api.nvim_win_get_buf(win)
-      if vim.api.nvim_get_option_value("filetype", { buf = buf }) == "qf" then
-        qf_win = win
-        break
-      end
+    -- Cheap check first: winid of the quickfix window in this tab (0 = none)
+    local qf_win = vim.fn.getqflist({ winid = 0 }).winid
+    if qf_win == 0 or qf_win == vim.api.nvim_get_current_win() then
+      return
     end
-
-    -- Stop if the quickfix window is not open
-    if not qf_win then return end
-
-    local cur_win = vim.api.nvim_get_current_win()
-    if cur_win == qf_win then return end
 
     local bufnr = vim.api.nvim_get_current_buf()
-    -- Avoid running when the cursor is moving inside the quickfix window itself
-    if vim.api.nvim_get_option_value("filetype", { buf = bufnr }) == "qf" then return end
+    local lnum = vim.api.nvim_win_get_cursor(0)[1]
 
-    local lnum = vim.api.nvim_win_get_cursor(cur_win)[1]
-    local qf_list = vim.fn.getqflist()
-
-    -- Find the item with the closest lnum (less than or equal to the current lnum)
-    -- belonging to the current buffer. Does NOT assume the list is contiguously
-    -- sorted -> scan the whole list and pick the best match.
-    local best_idx = nil
-    local best_diff = math.huge
-    for i, item in ipairs(qf_list) do
-      if item.bufnr == bufnr and item.lnum <= lnum then
-        local diff = lnum - item.lnum
-        if diff < best_diff then
-          best_diff = diff
-          best_idx = i
-        end
+    -- Closest item at or above the cursor in this buffer. The list is not
+    -- assumed to be sorted, so scan all of it.
+    local best_idx, best_diff = nil, math.huge
+    for i, item in ipairs(vim.fn.getqflist()) do
+      if item.bufnr == bufnr and item.lnum <= lnum and lnum - item.lnum < best_diff then
+        best_idx, best_diff = i, lnum - item.lnum
       end
     end
 
-    if best_idx then
-      -- Move the cursor inside the quickfix window to the matching line
+    -- Only touch the list when the index actually changes
+    if best_idx and vim.fn.getqflist({ idx = 0 }).idx ~= best_idx then
       pcall(vim.api.nvim_win_set_cursor, qf_win, { best_idx, 0 })
-
-      -- Also sync the quickfix list's internal "current index",
-      -- so the next :cnext / :cprevious correctly continues from this position
+      -- Sync the list's current index so :cnext / :cprev continue from here
       pcall(vim.fn.setqflist, {}, "r", { idx = best_idx })
     end
   end,
 })
 
--- 15. Use ts for syntax highlighting + enable vimtex
-
-vim.api.nvim_create_autocmd("FileType", {
+-- 15. Use treesitter for highlighting, keep VimTeX syntax (needed by its motions)
+autocmd("FileType", {
+  group = custom,
   pattern = "tex",
   callback = function(args)
     vim.treesitter.start(args.buf, "latex")

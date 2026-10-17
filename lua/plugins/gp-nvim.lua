@@ -1,6 +1,17 @@
+-- gp.nvim saves chats here (its default chat_dir)
+local chat_dir = vim.fn.stdpath("data") .. "/gp/chats"
+
 return {
   "Phuocminh94/gp.nvim",
-  enabled = true,
+  cmd = { "GpChatNew", "GpChatToggle", "GpChatPaste", "GpChatFinder" },
+  -- Also load when an existing chat file is opened directly (picker, recent
+  -- files, :e), so gp can set up its chat buffer features for it.
+  event = { "BufReadPre " .. chat_dir .. "/*" },
+  keys = {
+    { "<leader>Ai", "<cmd>GpChatNew vsplit<cr>", desc = "AI Chat New" },
+    { "<leader>ai", "<cmd>GpChatToggle vsplit<cr>", desc = "AI Chat Toggle Panel" },
+    { "<leader>ai", ":<C-u>'<,'>GpChatPaste vsplit<cr>", mode = "x", desc = "AI Chat Paste Selection" },
+  },
   config = function()
     require("gp").setup({
       default_command_agent = "Gemini",
@@ -9,9 +20,10 @@ return {
       chat_assistant_prefix = "🤖 ",
 
       providers = {
+        -- Listing a provider enables it; the endpoint defaults to the
+        -- streamGenerateContent URL, so only the key needs overriding
+        -- (gp's default reads GOOGLEAI_API_KEY).
         googleai = {
-          endpoint =
-          "https://generativelanguage.googleapis.com/v1beta/models/{{model}}:streamGenerateContent?key={{secret}}",
           secret = os.getenv("GEMINI_API_KEY"),
         },
       },
@@ -25,22 +37,15 @@ return {
       },
     })
 
-    -- Disable spellcheck only for gp.nvim chat buffers.
-    -- gp.nvim chat files are always saved under the chat_dir directory
-    -- (default: stdpath("data") .. "/gp/chats"), so matching by path
-    -- is more reliable than matching by filetype ("markdown", shared
-    -- with all normal .md files).
-    local gp_chat_dir = vim.fn.stdpath("data") .. "/gp/chats"
+    -- Disable spellcheck only for gp.nvim chat buffers. Matching the chat
+    -- directory is more reliable than the filetype (markdown is shared with
+    -- every normal .md file).
     vim.api.nvim_create_autocmd({ "BufWinEnter", "BufRead" }, {
       group = vim.api.nvim_create_augroup("gp_nvim_no_spell", { clear = true }),
-      pattern = gp_chat_dir .. "/*",
+      pattern = chat_dir .. "/*",
       callback = function()
         vim.opt_local.spell = false
       end,
     })
-
-    vim.keymap.set("n", "<Leader>Ai", "<cmd>GpChatNew vsplit<cr>", { desc = "AI Chat New" })
-    vim.keymap.set("n", "<Leader>ai", "<cmd>GpChatToggle vsplit<cr>", { desc = "AI Chat Toggle Panel" })
-    vim.keymap.set("v", "<Leader>ai", ":<C-u>'<,'>GpChatPaste vsplit<cr>", { desc = "AI Chat Paste Selection" })
   end,
 }
