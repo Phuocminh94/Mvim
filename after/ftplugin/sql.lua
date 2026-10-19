@@ -1,17 +1,22 @@
-vim.keymap.set("n", "<leader>db", "<cmd>DBUIToggle<cr>", { desc = "Toggle Dadbod UI" })
-vim.keymap.set("n", "<leader>df", "<cmd>DBUIFindBuffer<cr>", { desc = "Find current buffer in DBUI" })
-vim.keymap.set("n", "<leader><Enter>", "<cmd>%DB<cr>", { buffer = true, desc = "Execute entire SQL file" })
-vim.keymap.set("v", "<leader><leader>", ":DB<cr>", { buffer = true, desc = "Execute selected SQL" })
-vim.keymap.set("n", "<leader><leader>", "<cmd>.DB<cr>", { buffer = true, desc = "Execute current line" })
+-- Also sourced by plsql.lua. Everything is buffer-local: <leader>db is the
+-- DAP breakpoint key elsewhere.
+local function map(mode, lhs, rhs, desc)
+  vim.keymap.set(mode, lhs, rhs, { buffer = true, desc = desc })
+end
+map("n", "<leader>db", "<cmd>DBUIToggle<cr>", "Toggle Dadbod UI")
+map("n", "<leader>df", "<cmd>DBUIFindBuffer<cr>", "Find current buffer in DBUI")
+map("n", "<leader><Enter>", "<cmd>%DB<cr>", "Execute entire SQL file")
+map("v", "<leader><leader>", ":DB<cr>", "Execute selected SQL")
+map("n", "<leader><leader>", "<cmd>.DB<cr>", "Execute current line")
 
-require("luasnip.loaders.from_vscode").lazy_load()
+-- nvim-cmp loads the snippets itself (plugins/nvim-cmp.lua).
 local has_cmp, cmp = pcall(require, "cmp")
 if has_cmp then
-	cmp.setup.buffer({
-		sources = {
-			{ name = "vim-dadbod-completion", priority = 1000 },
-			{ name = "luasnip" },
-			{ name = "buffer", priority = 250 },
-		},
-	})
+  cmp.setup.buffer({
+    sources = {
+      { name = "vim-dadbod-completion", priority = 1000 },
+      { name = "luasnip" },
+      { name = "buffer", priority = 250 },
+    },
+  })
 end

@@ -1,11 +1,22 @@
 local M = {}
 
+-- gp.nvim saves chats here (its default chat_dir).
+M.gp_chat_dir = vim.fn.stdpath("data") .. "/gp/chats"
+
+--- True when `buf` is a gp.nvim chat file.
+function M.is_gp_chat(buf)
+  local name = vim.api.nvim_buf_get_name(buf or 0)
+  return vim.startswith(name, M.gp_chat_dir .. "/")
+end
+
 -- =============================================================================
 -- SNACKS.PICKER HELPER
 -- =============================================================================
 local function show_toc_with_snacks(results, title)
   local ok, snacks = pcall(require, "snacks")
-  if not ok then return end
+  if not ok then
+    return
+  end
 
   snacks.picker.pick({
     title = title,
@@ -48,7 +59,7 @@ local function build_toc_data(parser_fn)
     if entry then
       table.insert(results, {
         text = string.rep("  ", entry.level - 1) .. entry.display_text,
-        line = lnum
+        line = lnum,
       })
     end
   end
@@ -70,11 +81,15 @@ M.markdown_toc = function(toc_name)
       return nil
     end
 
-    if inside_code_block or line:match("^`") then return nil end
+    if inside_code_block or line:match("^`") then
+      return nil
+    end
 
     -- for gp.nvim chat buffer
     if catch_next_line then
-      if line:match("^%s*$") then return nil end
+      if line:match("^%s*$") then
+        return nil
+      end
 
       catch_next_line = false
       return { level = 1, display_text = "💬 MBP: " .. line }
@@ -102,13 +117,19 @@ end
 
 M.latex_toc = function()
   local levels = {
-    part = 1, chapter = 2, section = 3,
-    subsection = 4, subsubsection = 5, paragraph = 6,
+    part = 1,
+    chapter = 2,
+    section = 3,
+    subsection = 4,
+    subsubsection = 5,
+    paragraph = 6,
   }
 
   local results = build_toc_data(function(line)
     -- Ignore comments
-    if line:match("^%s*%%") then return nil end
+    if line:match("^%s*%%") then
+      return nil
+    end
 
     -- Match \section{Title} or \section*{Title}
     local cmd, title = line:match("\\(%a+)%*?%s*%{(.-)%}")
@@ -116,7 +137,7 @@ M.latex_toc = function()
     if cmd and levels[cmd] then
       return {
         level = levels[cmd],
-        display_text = string.format("\\%s: %s", cmd, title)
+        display_text = string.format("\\%s: %s", cmd, title),
       }
     end
   end)

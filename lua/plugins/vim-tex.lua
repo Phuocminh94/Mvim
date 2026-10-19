@@ -1,25 +1,17 @@
 return {
   "lervag/vimtex",
   ft = { "tex", "plaintex" },
-  config = function()
-    vim.cmd('filetype plugin indent on')
-    vim.cmd('syntax enable')
-
+  -- VimTeX reads its g: options when it loads, so set them in init.
+  init = function()
     vim.g.vimtex_view_method = "zathura"
-    -- vim.g.vimtex_view_general_viewer = "zathura"
-    vim.g.vimtex_view_enabled = 1
-
-    vim.g.vimtex_compiler_method = 'latexmk'
-    vim.g.maplocalleader = ','
-
+    vim.g.vimtex_compiler_method = "latexmk"
     vim.g.vimtex_compiler_latexmk = {
-      executable = 'latexmk',
+      executable = "latexmk",
       options = {
-        -- '-xelatex',
-        '-pdfxe', -- <— single, unambiguous switch
-        '-file-line-error',
-        '-synctex=1',
-        '-interaction=nonstopmode',
+        "-pdfxe",
+        "-file-line-error",
+        "-synctex=1",
+        "-interaction=nonstopmode",
       },
     }
   end,

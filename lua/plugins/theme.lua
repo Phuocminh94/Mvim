@@ -1,42 +1,19 @@
+-- Colorscheme. ColorColumn, statusline colors and transparency are re-applied
+-- on every ColorScheme event by minh.highlights.
 local theme_path = vim.fn.expand("~/.local/state/omarchy/current/theme/neovim.lua")
-local loop = vim.uv or vim.loop
 
-local function blend(bg, fg, a)
-  local function ch(c, shift) return bit.band(bit.rshift(c, shift), 0xff) end
-  local function mix(shift)
-    return math.floor(ch(bg, shift) * (1 - a) + ch(fg, shift) * a + 0.5)
-  end
-  return string.format("#%02x%02x%02x", mix(16), mix(8), mix(0))
-end
+local aether = {
+  "bjarneo/aether.nvim",
+  branch = "v3",
+  name = "aether",
+  priority = 1000,
+  lazy = false,
+}
 
-local function set_colorcolumn()
-  local normal = vim.api.nvim_get_hl(0, { name = "Normal", link = false })
-  if not (normal.bg and normal.fg) then return end
-  local color = blend(normal.bg, normal.fg, 0.12)
-
-  local color
-  -- If CursorLine has its own Normal.bg -> blend Normal.bg with CursorLine.bg
-  if cl and cl.bg and cl.bg ~= normal.bg then
-    color = blend(normal.bg, cl.bg, 0.5)
-  else
-    -- If CursorLine không có bg -> blend Normal.bg with Normal.fg (12%) to make distinct colors
-    color = blend(normal.bg, normal.fg, 0.12)
-  end
-
-  vim.api.nvim_set_hl(0, "ColorColumn", { bg = color })
-end
-
--- Has theme -> Remove LazyVim, aether with no colorscheme
-if loop.fs_stat(theme_path) then
-  local plugins = {
-    {
-      "bjarneo/aether.nvim",
-      branch = "v3",
-      name = "aether",
-      priority = 1000,
-      lazy = false,
-    },
-  }
+-- Omarchy theme present: load its plugin specs and the colorscheme it names
+-- (its file is written for LazyVim, so the LazyVim spec only carries the name).
+if vim.uv.fs_stat(theme_path) then
+  local plugins = { aether }
   local colorscheme
 
   local ok, result = pcall(dofile, theme_path)
@@ -53,6 +30,8 @@ if loop.fs_stat(theme_path) then
   end
 
   if colorscheme then
+    -- A local pseudo-plugin, so the colorscheme is set after every theme
+    -- plugin above (priority 1000) has been loaded.
     table.insert(plugins, {
       name = "linux-colorscheme",
       dir = vim.fn.stdpath("config"),
@@ -60,7 +39,6 @@ if loop.fs_stat(theme_path) then
       priority = 999,
       config = function()
         pcall(vim.cmd.colorscheme, colorscheme)
-        set_colorcolumn()
       end,
     })
   end
@@ -68,14 +46,9 @@ if loop.fs_stat(theme_path) then
   return plugins
 end
 
--- No theme -> aether with default colorscheme (miasma)
+-- No omarchy theme: aether with a miasma-like palette.
 return {
-  {
-    "bjarneo/aether.nvim",
-    branch = "v3",
-    name = "aether",
-    priority = 1000,
-    lazy = false,
+  vim.tbl_extend("force", aether, {
     opts = {
       colors = {
         bg = "#222222",
@@ -117,7 +90,6 @@ return {
     config = function(_, opts)
       require("aether").setup(opts)
       vim.cmd.colorscheme("aether")
-      vim.api.nvim_set_hl(0, "ColorColumn", { bg = "#2c2c2c" })
     end,
-  },
+  }),
 }

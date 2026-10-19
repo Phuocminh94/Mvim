@@ -29,6 +29,7 @@ M.setup_ui = function()
       },
     },
     update_in_insert = false,
+    severity_sort = true, -- errors win over warnings in the sign column
     float = {
       border = border,
       source = true, -- "always" is the pre-0.10 spelling; true or "if_many" now

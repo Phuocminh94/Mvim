@@ -192,6 +192,7 @@ rules.markdown = {
 }
 
 -- LaTeX commands at start of line that are still prose (permitted to reflow).
+-- stylua: ignore
 local TEX_PROSE_CMDS = {
   textbf = true, textit = true, emph = true, texttt = true, underline = true,
   cite = true, ref = true, eqref = true, autoref = true, href = true, url = true,
@@ -199,6 +200,7 @@ local TEX_PROSE_CMDS = {
 }
 
 -- Environments that should be preserved completely.
+-- stylua: ignore
 local TEX_VERBATIM_ENVS = {
   equation = true, align = true, gather = true, multline = true, flalign = true,
   alignat = true, eqnarray = true, verbatim = true, Verbatim = true,

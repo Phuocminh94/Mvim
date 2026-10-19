@@ -6,152 +6,127 @@ local autocmd = vim.api.nvim_create_autocmd
 
 -- 1. Highlight on yank
 autocmd("TextYankPost", {
-	desc = "highlight yanked text",
-	group = custom,
-	callback = function()
-		vim.highlight.on_yank({ higroup = "Visual", timeout = 200 })
-	end,
+  desc = "highlight yanked text",
+  group = custom,
+  callback = function()
+    vim.hl.on_yank({ higroup = "Visual", timeout = 200 })
+  end,
 })
 
 -- 2. Quick escape for non-critical windows
 autocmd("FileType", {
-	desc = "quick escape with q",
-	group = custom,
-	pattern = { "checkhealth", "help", "fugitive", "lspinfo", "man", "qf", "git", "lazygit", "spectre_panel" },
-	callback = function(event)
-		vim.bo[event.buf].buflisted = false
-		vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = event.buf, silent = true })
-		vim.keymap.set("n", "<esc>", "<cmd>close<cr>", { buffer = event.buf, silent = true })
-	end,
+  desc = "quick escape with q",
+  group = custom,
+  pattern = { "checkhealth", "help", "fugitive", "lspinfo", "man", "qf", "git", "lazygit", "spectre_panel" },
+  callback = function(event)
+    vim.bo[event.buf].buflisted = false
+    vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = event.buf, silent = true })
+    vim.keymap.set("n", "<esc>", "<cmd>close<cr>", { buffer = event.buf, silent = true })
+  end,
 })
 
 -- 3. Auto-resize splits
 autocmd("VimResized", {
-	desc = "resize splits if window got resized",
-	group = custom,
-	callback = function()
-		local current_tab = vim.fn.tabpagenr()
-		vim.cmd("tabdo wincmd =")
-		vim.cmd("tabnext " .. current_tab)
-	end,
+  desc = "resize splits if window got resized",
+  group = custom,
+  callback = function()
+    local current_tab = vim.fn.tabpagenr()
+    vim.cmd("tabdo wincmd =")
+    vim.cmd("tabnext " .. current_tab)
+  end,
 })
 
 -- 4. Search highlighting management
 autocmd("CmdlineEnter", {
-	desc = "enable hlsearch when entering cmdline",
-	group = custom,
-	pattern = { "/", "?" },
-	callback = function()
-		vim.opt.hlsearch = true
-	end,
+  desc = "enable hlsearch when entering cmdline",
+  group = custom,
+  pattern = { "/", "?" },
+  callback = function()
+    vim.opt.hlsearch = true
+  end,
 })
 
 autocmd("CmdlineLeave", {
-	desc = "disable hlsearch when leaving cmdline",
-	group = custom,
-	pattern = { "/", "?" },
-	callback = function()
-		vim.opt.hlsearch = false
-	end,
+  desc = "disable hlsearch when leaving cmdline",
+  group = custom,
+  pattern = { "/", "?" },
+  callback = function()
+    vim.opt.hlsearch = false
+  end,
 })
 
 -- 5. Text file improvements
 autocmd("FileType", {
-	desc = "wrap and check for spell in text filetypes",
-	group = custom,
-	pattern = { "gitcommit", "markdown" },
-	callback = function()
-		vim.opt_local.wrap = true
-		vim.opt_local.spell = true
-	end,
+  desc = "spell check in text filetypes",
+  group = custom,
+  pattern = { "gitcommit", "markdown", "rmd", "quarto", "tex", "text" },
+  callback = function()
+    vim.opt_local.spell = true
+  end,
+})
+
+autocmd("FileType", {
+  desc = "soft wrap in prose filetypes",
+  group = custom,
+  pattern = { "gitcommit", "markdown" },
+  callback = function()
+    vim.opt_local.wrap = true
+  end,
 })
 
 -- 6. Avoid auto-commenting new lines
 autocmd("BufWinEnter", {
-	desc = "avoid auto insert comment on newline",
-	group = custom,
-	callback = function()
-		-- opt_local: only this buffer (vim.opt would also change the global value)
-		vim.opt_local.formatoptions:remove({ "c", "r", "o" })
-	end,
+  desc = "avoid auto insert comment on newline",
+  group = custom,
+  callback = function()
+    -- opt_local: only this buffer (vim.opt would also change the global value)
+    vim.opt_local.formatoptions:remove({ "c", "r", "o" })
+  end,
 })
 
--- 7. Executable Path Detection (Generic)
--- Resolve once per session; try each candidate name in order.
-local set_exe_path = function(global_var, candidates)
-	if vim.g[global_var] then
-		return
-	end
-	for _, exe in ipairs(candidates) do
-		local path = vim.fn.exepath(exe)
-		if path ~= "" then
-			vim.g[global_var] = path
-			return
-		end
-	end
-	vim.notify(table.concat(candidates, "/") .. " not found in PATH", vim.log.levels.WARN)
-end
-
-autocmd("FileType", {
-	pattern = "python",
-	group = custom,
-	callback = function()
-		set_exe_path("py_path", { "python3", "python" })
-	end,
-})
-
-autocmd("FileType", {
-	pattern = "r",
-	group = custom,
-	callback = function()
-		set_exe_path("r_path", { "R" })
-	end,
-})
-
--- 8. Hide the statusline on the dashboard, restore it when leaving
+-- 7. Hide the statusline on the dashboard, restore it when leaving
 autocmd({ "FileType", "BufEnter" }, {
-	pattern = "dashboard",
-	group = custom,
-	callback = function()
-		vim.opt.laststatus = 0
-	end,
+  pattern = "dashboard",
+  group = custom,
+  callback = function()
+    vim.opt.laststatus = 0
+  end,
 })
 
 autocmd("BufLeave", {
-	group = custom,
-	callback = function()
-		if vim.bo.filetype == "dashboard" then
-			vim.opt.laststatus = 3
-		end
-	end,
+  group = custom,
+  callback = function()
+    if vim.bo.filetype == "dashboard" then
+      vim.opt.laststatus = 3
+    end
+  end,
 })
 
--- 10. Snacks.indent
+-- 8. Snacks.indent
 autocmd("FileType", {
-	group = custom,
-	pattern = { "dashboard", "markdown", "txt", "dbout", "sql", "plsql", "mysql", "qmd", "rmd" },
-	callback = function()
-		vim.b.snacks_indent = false
-	end,
+  group = custom,
+  pattern = { "dashboard", "markdown", "txt", "dbout", "sql", "plsql", "mysql", "qmd", "rmd" },
+  callback = function()
+    vim.b.snacks_indent = false
+  end,
 })
 
--- 11. Keep Google Drive files out of oldfiles / recent files.
+-- 9. Keep Google Drive files out of oldfiles / recent files.
 -- The shada "r" flag marks a path as removable media: no marks or oldfiles
 -- are stored for it. (Setting 'shadafile' per buffer did not work: it is a
 -- global option, so opening one gdrive file disabled shada for the session.)
 vim.opt.shada:append("r" .. vim.fn.expand("~/Cloud/gdrive/"))
 
--- 12. Force UI redraw on command-line changes to fix stuck LSP/search artifacts (noice.nvim)
-local redraw_group = vim.api.nvim_create_augroup("update_search_redraw", { clear = true })
-vim.api.nvim_create_autocmd("CmdlineChanged", {
-	group = redraw_group,
-	desc = "Fix command-line rendering artifacts by scheduling a redraw",
-	callback = function()
-		vim.schedule(vim.cmd.redraw)
-	end,
+-- 10. Force UI redraw on command-line changes to fix stuck LSP/search artifacts (noice.nvim)
+autocmd("CmdlineChanged", {
+  group = custom,
+  desc = "Fix command-line rendering artifacts by scheduling a redraw",
+  callback = function()
+    vim.schedule(vim.cmd.redraw)
+  end,
 })
 
--- 13. Remove items from quickfix / location list with dd (keeps the title)
+-- 11. Remove items from quickfix / location list with dd (keeps the title)
 autocmd("FileType", {
   group = custom,
   pattern = "qf",
@@ -176,7 +151,25 @@ autocmd("FileType", {
   end,
 })
 
--- 14. Auto sync quickfix item based on cursor position
+-- 12. Auto sync quickfix item based on cursor position
+-- Items grouped by buffer, rebuilt only when the list changes ('changedtick'),
+-- so a large grep result does not get copied on every cursor move.
+local qf_cache = { id = nil, tick = nil, by_buf = {} }
+
+local function qf_items_by_buf()
+  local info = vim.fn.getqflist({ id = 0, changedtick = 0 })
+  if info.id ~= qf_cache.id or info.changedtick ~= qf_cache.tick then
+    local by_buf = {}
+    for i, item in ipairs(vim.fn.getqflist()) do
+      local list = by_buf[item.bufnr] or {}
+      list[#list + 1] = { idx = i, lnum = item.lnum }
+      by_buf[item.bufnr] = list
+    end
+    qf_cache = { id = info.id, tick = info.changedtick, by_buf = by_buf }
+  end
+  return qf_cache.by_buf
+end
+
 autocmd("CursorMoved", {
   group = custom,
   callback = function()
@@ -186,15 +179,18 @@ autocmd("CursorMoved", {
       return
     end
 
-    local bufnr = vim.api.nvim_get_current_buf()
+    local items = qf_items_by_buf()[vim.api.nvim_get_current_buf()]
+    if not items then
+      return
+    end
     local lnum = vim.api.nvim_win_get_cursor(0)[1]
 
     -- Closest item at or above the cursor in this buffer. The list is not
-    -- assumed to be sorted, so scan all of it.
+    -- assumed to be sorted, so scan all of this buffer's items.
     local best_idx, best_diff = nil, math.huge
-    for i, item in ipairs(vim.fn.getqflist()) do
-      if item.bufnr == bufnr and item.lnum <= lnum and lnum - item.lnum < best_diff then
-        best_idx, best_diff = i, lnum - item.lnum
+    for _, item in ipairs(items) do
+      if item.lnum <= lnum and lnum - item.lnum < best_diff then
+        best_idx, best_diff = item.idx, lnum - item.lnum
       end
     end
 
@@ -207,7 +203,7 @@ autocmd("CursorMoved", {
   end,
 })
 
--- 15. Use treesitter for highlighting, keep VimTeX syntax (needed by its motions)
+-- 13. Use treesitter for highlighting, keep VimTeX syntax (needed by its motions)
 autocmd("FileType", {
   group = custom,
   pattern = "tex",

@@ -1,5 +1,4 @@
--- gp.nvim saves chats here (its default chat_dir)
-local chat_dir = vim.fn.stdpath("data") .. "/gp/chats"
+local chat_dir = require("minh.utils").gp_chat_dir
 
 return {
   "Phuocminh94/gp.nvim",

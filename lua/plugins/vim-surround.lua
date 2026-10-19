@@ -1,7 +1,7 @@
 return {
   "tpope/vim-surround",
   event = "VeryLazy",
-  dependencies =  {
-    "tpope/vim-repeat"
-  }
+  dependencies = {
+    "tpope/vim-repeat",
+  },
 }

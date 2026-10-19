@@ -1,6 +1,6 @@
 return {
-  'lewis6991/gitsigns.nvim',
-  event = { 'BufReadPre', 'BufNewFile' },  -- Lazy-load on file open
+  "lewis6991/gitsigns.nvim",
+  event = { "BufReadPre", "BufNewFile" }, -- Lazy-load on file open
   opts = {
     signs = {
       add = { text = "▎" },

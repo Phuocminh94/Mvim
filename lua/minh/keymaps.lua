@@ -49,7 +49,6 @@ map("n", "<leader>cd", function()
   end
 end, "Change cwd to file's directory")
 
-
 -------------------------------------------------------------------------------
 -- WINDOW & TAB MANAGEMENT
 -------------------------------------------------------------------------------
@@ -65,11 +64,11 @@ map("n", "<leader>sh", "<C-w>s", "Split horizontally")
 map("n", "<leader>se", "<C-w>=", "Make splits equal")
 map("n", "<leader>sx", "<cmd>close<CR>", "Close split")
 
--- Resize splits
-map("n", "<C-w>k", "<cmd>resize -2<CR>", "Decrease height")
-map("n", "<C-w>j", "<cmd>resize +2<CR>", "Increase height")
-map("n", "<C-w>h", "<cmd>vertical resize -2<CR>", "Decrease width")
-map("n", "<C-w>l", "<cmd>vertical resize +2<CR>", "Increase width")
+-- Resize splits (<C-w>hjkl keep their default: move between windows)
+map("n", "<C-Up>", "<cmd>resize -2<CR>", "Decrease height")
+map("n", "<C-Down>", "<cmd>resize +2<CR>", "Increase height")
+map("n", "<C-Left>", "<cmd>vertical resize -2<CR>", "Decrease width")
+map("n", "<C-Right>", "<cmd>vertical resize +2<CR>", "Increase width")
 
 -- Tab management
 map("n", "<leader>tn", "<cmd>tabnew<CR>", "Open new tab")
@@ -94,8 +93,7 @@ map("n", "<leader>e", "<cmd>Neotree toggle<CR>", "Toggle File Explorer")
 map("n", "]q", "<cmd>cnext<CR>", "Next quickfix item")
 map("n", "[q", "<cmd>cprev<CR>", "Prev quickfix item")
 
--- EasyAlign / Sort
-map({ "n", "x" }, "ga", "<Plug>(EasyAlign)", "EasyAlign")
+-- Sort (EasyAlign `ga` lives in plugins/vim-easy-align.lua)
 map("x", "<leader>s", ":sort /^\\s*/<CR>", "Sort lines")
 
 -- Utilities
@@ -108,7 +106,6 @@ end, "Toggle terminal")
 map("n", "<leader>ft", function()
   require("minh.terminal").pick()
 end, "Find terminals")
-map("n", "<A-c>", "<cmd>ColorizerToggle<CR>", "Toggle Colorizer")
 map("n", "<leader>p", "<cmd>PasteImage<CR>", "Paste Image (img-clip)")
 
 -------------------------------------------------------------------------------
@@ -151,13 +148,16 @@ map("n", "<leader>fp", function()
 end, "Find Projects")
 
 map("n", "<leader>fn", function()
+  if vim.g.note_path == "" then
+    vim.notify("Set vim.g.note_path in lua/minh/local_config.lua", vim.log.levels.WARN)
+    return
+  end
   Snacks.picker.files({ cwd = vim.g.note_path })
 end, "Find Note")
 
 map("n", "<leader>fN", function()
   Snacks.picker.notifications()
 end, "Notification History")
-
 
 map("n", "<leader>fs", function()
   vim.wo.spell = true
@@ -180,8 +180,8 @@ map("n", "<leader>fs", function()
     format = function(item)
       return {
         { string.format("%4d:%-3d ", item.pos[1], item.pos[2] + 1), "SnacksPickerIdx" },
-        { item.word,                                                "DiagnosticError" },
-        { "  " .. item.kind,                                        "Comment" },
+        { item.word, "DiagnosticError" },
+        { "  " .. item.kind, "Comment" },
       }
     end,
     -- preview = "none",
@@ -229,11 +229,12 @@ vim.api.nvim_create_autocmd("LspAttach", {
       Snacks.picker.lsp_type_definitions()
     end, "Type Definition")
 
-    lsp_map("n", "gci", function()
+    -- Not gci/gco: `gc` is the comment operator (gcip) and gco adds a comment below.
+    lsp_map("n", "<leader>ci", function()
       Snacks.picker.lsp_incoming_calls()
     end, "Calls Incoming")
 
-    lsp_map("n", "gco", function()
+    lsp_map("n", "<leader>co", function()
       Snacks.picker.lsp_outgoing_calls()
     end, "Calls Outgoing")
 
@@ -247,7 +248,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
 })
 
 -- Formatting is global: conform also runs formatters for buffers without an LSP
--- (prettier for markdown, sqlfluff, stylua...). `lsp_fallback` is deprecated.
+-- (see formatters_by_ft in plugins/conform.lua).
 map({ "n", "x" }, "<leader>fm", function()
   require("conform").format({ lsp_format = "fallback", async = false })
 end, "Format file/selection")

@@ -9,14 +9,62 @@ return {
     },
     -- Load DAP (and dap-ui, nio) on the first debug key instead of at startup.
     keys = {
-      { "<leader>db", function() require("dap").toggle_breakpoint() end, desc = "DAP: Toggle Breakpoint" },
-      { "<leader>dc", function() require("dap").continue() end, desc = "DAP: Continue / Start" },
-      { "<leader>di", function() require("dap").step_into() end, desc = "DAP: Step Into" },
-      { "<leader>do", function() require("dap").step_over() end, desc = "DAP: Step Over" },
-      { "<leader>du", function() require("dap").step_out() end, desc = "DAP: Step Out" },
-      { "<leader>dr", function() require("dap").repl.open() end, desc = "DAP: Open REPL" },
-      { "<leader>dt", function() require("dapui").toggle() end, desc = "DAP: Toggle UI" },
-      { "<leader>dx", function() require("dap").terminate() end, desc = "DAP: Terminate Session" },
+      {
+        "<leader>db",
+        function()
+          require("dap").toggle_breakpoint()
+        end,
+        desc = "DAP: Toggle Breakpoint",
+      },
+      {
+        "<leader>dc",
+        function()
+          require("dap").continue()
+        end,
+        desc = "DAP: Continue / Start",
+      },
+      {
+        "<leader>di",
+        function()
+          require("dap").step_into()
+        end,
+        desc = "DAP: Step Into",
+      },
+      {
+        "<leader>do",
+        function()
+          require("dap").step_over()
+        end,
+        desc = "DAP: Step Over",
+      },
+      {
+        "<leader>du",
+        function()
+          require("dap").step_out()
+        end,
+        desc = "DAP: Step Out",
+      },
+      {
+        "<leader>dr",
+        function()
+          require("dap").repl.open()
+        end,
+        desc = "DAP: Open REPL",
+      },
+      {
+        "<leader>dt",
+        function()
+          require("dapui").toggle()
+        end,
+        desc = "DAP: Toggle UI",
+      },
+      {
+        "<leader>dx",
+        function()
+          require("dap").terminate()
+        end,
+        desc = "DAP: Terminate Session",
+      },
     },
     config = function()
       local dap = require("dap")

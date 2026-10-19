@@ -1,7 +1,16 @@
+-- stylua: ignore start
 -- My Essential Neovim Options --
 
 -- Globals
-if not pcall(require, "minh/local_config") then vim.g.note_path = "" end
+-- Machine-specific settings (gitignored): vim.g.note_path, vim.g.dadbod_db...
+-- A missing file is fine; an error inside it is reported instead of hidden.
+local ok, err = pcall(require, "minh.local_config")
+if not ok and not err:find("module 'minh.local_config' not found", 1, true) then
+  vim.notify("local_config: " .. err, vim.log.levels.WARN)
+end
+vim.g.note_path = vim.g.note_path or ""
+vim.g.dadbod_db = vim.g.dadbod_db or {}
+
 vim.g.loaded_netrw = 1              -- Disable netrw at the very start
 vim.g.loaded_netrwPlugin = 1
 vim.g.snippet_path = vim.api.nvim_get_runtime_file("lua/snippets", false)[1] or {}
@@ -27,11 +36,10 @@ opt.listchars = {
   precedes = '«',
 }
 
--- Folds
-vim.opt.foldmethod = "expr"         -- Use expr for better folds
-vim.opt.foldexpr = "nvim_treesitter#foldexpr()" -- Use Treesitter for "expr"
-vim.opt.foldlevel = 99              -- Open first level
-vim.opt.foldlevelstart = 99
+-- Folds: treesitter folding is enabled per buffer in plugins/nvim-treesitter.lua
+-- (only where a parser exists); other buffers keep foldmethod=manual.
+opt.foldlevel      = 99             -- Start with every fold open
+opt.foldlevelstart = 99
 
 
 -- Search Settings
@@ -46,16 +54,17 @@ opt.shiftwidth     = 2
 opt.expandtab      = true           -- Use spaces instead of tabs
 opt.autoindent     = true
 opt.wrap           = false          -- Don't wrap long lines visually
+opt.linebreak      = true           -- Where wrap is on: break at word boundaries
+opt.breakindent    = true           -- ...and keep the indent of wrapped lines
 
 -- System Integration
 opt.clipboard:append("unnamedplus") -- Sync with system clipboard
 opt.swapfile       = false          -- Don't create annoying .swp files
+opt.undofile       = true           -- Persistent undo (undotree survives restarts)
 opt.splitright     = true           -- Vertical splits go to the right
 opt.splitbelow     = true           -- Horizontal splits go to the bottom
 opt.backspace      = "indent,eol,start" -- Logical backspace behavior
 
--- Language & Dict
-opt.spell          = true
-opt.dictionary     = { "~/.config/nvim/dict/english.txt" }
-
-vim.g.lazyvim_check_order = false
+-- Language & Dict (spell is enabled for text filetypes in minh/autocmd.lua)
+opt.dictionary     = { vim.fn.stdpath("config") .. "/dict/english.txt" }
+-- stylua: ignore end

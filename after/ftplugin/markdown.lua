@@ -1,7 +1,6 @@
 local utils = require("minh.utils")
 
--- gp.nvim chat buffers have names starting with 4 digits (date and time).
-local is_ai_buf = vim.fn.expand("%:t"):match("^%d%d%d%d") ~= nil
+local is_ai_buf = utils.is_gp_chat(0)
 
 -- Default width; override per file with a modeline
 --   <!-- vim: set tw=100: -->

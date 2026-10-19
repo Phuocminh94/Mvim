@@ -11,8 +11,21 @@ return {
     { "<leader>rb", desc = "Iron: Send # %% cell and move to next" },
     { "<leader>rr", "<cmd>IronRestart<cr>", desc = "Iron: Restart REPL" },
     { "<leader>rf", "<cmd>IronFocus<cr>", desc = "Iron: Focus REPL" },
-    { "<leader>rl", function() require("iron.core").send_line() end, desc = "Iron: Send line (additional)" },
-    { "<leader>rv", function() require("iron.core").visual_send() end, mode = "x", desc = "Iron: Send selection (additional)" },
+    {
+      "<leader>rl",
+      function()
+        require("iron.core").send_line()
+      end,
+      desc = "Iron: Send line (additional)",
+    },
+    {
+      "<leader>rv",
+      function()
+        require("iron.core").visual_send()
+      end,
+      mode = "x",
+      desc = "Iron: Send selection (additional)",
+    },
   },
   config = function()
     local iron = require("iron.core")
@@ -39,7 +52,8 @@ return {
           r = { command = { "R", "--no-save" }, format = common.bracketed_paste },
           sql = {
             command = function()
-              local container = "docker-db-mgmt-postgres-1"
+              -- Set vim.g.psql_container in lua/minh/local_config.lua
+              local container = vim.g.psql_container or "docker-db-mgmt-postgres-1"
               local db = vim.fn.input("Database name: ", "")
               return { "docker", "exec", "-it", container, "psql", "-U", "postgres", "-d", db }
             end,
