@@ -119,7 +119,7 @@ M.clock = function()
   return "%#St_Text#   " .. os.date("%H:%M") .. " "
 end
 
-M.cursor = "%#St_Text# Ln %l, Col %v  "
+M.cursor = "%#St_Text# Ln %l/%L, Col %v · %p%%  "
 
 M.recording = function()
   local reg = vim.fn.reg_recording()
