@@ -13,5 +13,9 @@ vim.opt_local.colorcolumn = is_ai_buf and "" or "+1"
 require("minh.wrap").attach()
 
 vim.keymap.set("n", "<leader>tc", function()
-  utils.markdown_toc(is_ai_buf and "Chat History Outline" or "Table of Content")
+  if is_ai_buf then
+    utils.gp_chat_toc("Chat History Outline")
+  else
+    utils.markdown_toc("Table of Content")
+  end
 end, { buffer = true, desc = "Table of Content" })
