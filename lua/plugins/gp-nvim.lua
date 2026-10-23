@@ -49,11 +49,14 @@ return {
         {
           name = "Gemini",
           provider = "googleai",
-          model = { model = "gemini-3.1-flash-lite" },
+          model = { model = "gemini-3.5-flash-lite" },
           system_prompt = "Always provide accurate, logical, and optimized responses.",
         },
       },
     })
+
+    -- Images pasted with <leader>p (img-clip) go to Gemini with the question.
+    require("minh.gp_images").setup()
 
     -- Disable spellcheck only for gp.nvim chat buffers. Matching the chat
     -- directory is more reliable than the filetype (markdown is shared with
