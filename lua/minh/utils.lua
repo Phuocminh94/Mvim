@@ -4,9 +4,11 @@ local M = {}
 M.gp_chat_dir = vim.fn.stdpath("data") .. "/gp/chats"
 
 -- Line prefixes that start a turn in a gp chat (plugins/gp-nvim.lua sets them
--- in gp, the chat outline and the [a / ]a jumps read them).
-M.gp_user_prefix = "❯ MBP "
-M.gp_assistant_prefix = "◆ Gemini "
+-- in gp, the chat outline and the [a / ]a jumps read them). No trailing space:
+-- gp matches the line start exactly, and once the space is gone from a saved
+-- chat the question is no longer seen and only the system prompt is sent.
+M.gp_user_prefix = "❯ MBP"
+M.gp_assistant_prefix = "◆ Gemini"
 
 --- True when `buf` is a gp.nvim chat file.
 function M.is_gp_chat(buf)
@@ -132,7 +134,7 @@ M.gp_chat_toc = function(toc_name)
     end
 
     if vim.startswith(line, M.gp_user_prefix) then
-      local inline_text = line:sub(#M.gp_user_prefix + 1)
+      local inline_text = vim.trim(line:sub(#M.gp_user_prefix + 1))
       if inline_text:match("%S") then
         n = n + 1
         return { level = 2, display_text = string.format("%s%d. %s", "❯ ", n, inline_text) }
