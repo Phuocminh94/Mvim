@@ -4,14 +4,14 @@ return {
   cmd = { "PasteImage" },
   opts = {
     custom = {
-      -- In a gp.nvim chat: absolute path under the chat dir, so minh.gp_images
+      -- In a gp.nvim chat: absolute path under the chat dir, so minh.gp_gemini
       -- can find the image whatever the cwd is, and no file name prompt.
       {
         trigger = function()
           return require("minh.utils").is_gp_chat(0)
         end,
         dir_path = function()
-          return require("minh.gp_images").image_dir
+          return require("minh.gp_gemini").image_dir
         end,
         use_absolute_path = true,
         relative_template_path = false,

@@ -55,8 +55,8 @@ return {
       },
     })
 
-    -- Images pasted with <leader>p (img-clip) go to Gemini with the question.
-    require("minh.gp_images").setup()
+    -- Gemini: system prompt as systemInstruction, pasted images (<leader>p) with the question.
+    require("minh.gp_gemini").setup()
 
     -- Disable spellcheck only for gp.nvim chat buffers. Matching the chat
     -- directory is more reliable than the filetype (markdown is shared with
