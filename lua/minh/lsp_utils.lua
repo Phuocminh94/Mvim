@@ -36,8 +36,8 @@ M.setup_ui = function()
     },
   })
 
-  -- References under the cursor (LspReferenceText/Read/Write) keep the
-  -- colorscheme's background highlight; Neovim's default links them to Visual.
+  -- References under the cursor (LspReferenceText/Read/Write) get a faint
+  -- tint from minh.highlights; the themes link them to Visual, too bright.
 end
 
 --- Completion capabilities (a table, or nil for Neovim's defaults).

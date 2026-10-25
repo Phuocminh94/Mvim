@@ -42,6 +42,21 @@ local function colorcolumn()
   api.nvim_set_hl(0, "ColorColumn", { bg = color })
 end
 
+-- Word-under-cursor highlight from vim.lsp.buf.document_highlight: the themes
+-- link it to Visual (bright selection colors); use a faint tint of the text
+-- color instead and keep fg, so syntax colors stay readable. Must run before
+-- the transparency overrides below clear Normal.bg.
+local function lsp_references()
+  local normal = get("Normal")
+  if not (normal.bg and normal.fg) then
+    return
+  end
+  local tint = M.blend(normal.bg, normal.fg, 0.18)
+  for _, name in ipairs({ "LspReferenceText", "LspReferenceRead", "LspReferenceWrite" }) do
+    api.nvim_set_hl(0, name, { bg = tint })
+  end
+end
+
 -- Groups used by minh.statusline: the theme's own StatusLine colors, so the
 -- bar looks like a plain statusline; only the mode and cwd get an accent.
 -- colors/neovim.vim defines its own St_* groups, so leave those alone.
@@ -73,6 +88,7 @@ end
 
 function M.apply()
   colorcolumn()
+  lsp_references()
   statusline()
   transparency()
 end
