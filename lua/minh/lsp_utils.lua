@@ -130,6 +130,13 @@ M.setup = function()
       if client then
         highlight_references(client, ev.buf)
         auto_signature(client, ev.buf)
+        -- cmp-nvim-lsp registers its source only on InsertEnter; a slow server such as
+        -- basedpyright can attach after that, leaving the buffer without LSP completion
+        -- until the next InsertEnter. Register it now instead.
+        local ok, cmp_lsp = pcall(require, "cmp_nvim_lsp")
+        if ok and cmp_lsp._on_insert_enter then
+          vim.api.nvim_buf_call(ev.buf, cmp_lsp._on_insert_enter)
+        end
       end
     end,
   })
