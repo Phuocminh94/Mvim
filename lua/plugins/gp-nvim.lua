@@ -38,10 +38,17 @@ return {
       chat_free_cursor = true,
 
       providers = {
+        -- gp ships with openai enabled; an empty table turns it off, so it
+        -- does not look for an OpenAI key (the "vault secret not found" warning).
+        openai = {},
         -- Listing a provider enables it; the endpoint defaults to the
         -- streamGenerateContent URL, so only the key needs overriding
         -- (gp's default reads GOOGLEAI_API_KEY).
+        -- `disable = false` keeps the table non-empty: gp treats an empty table as
+        -- "disable this provider", which is what `{ secret = nil }` becomes when
+        -- GEMINI_API_KEY is not set in nvim's environment.
         googleai = {
+          disable = false,
           secret = os.getenv("GEMINI_API_KEY"),
         },
       },
@@ -49,6 +56,7 @@ return {
         {
           name = "Gemini",
           provider = "googleai",
+          chat = true, -- gp only lists agents for chat when this is set
           model = { model = "gemini-3.5-flash-lite" },
           system_prompt = "Always provide accurate, logical, and optimized responses.",
         },
