@@ -14,5 +14,14 @@ return {
         "-interaction=nonstopmode",
       },
     }
+    -- Keep the quickfix window closed after compiling; errors are one
+    -- :VimtexErrors (<localleader>le) away, and a failed build says so below.
+    vim.g.vimtex_quickfix_mode = 0
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "VimtexEventCompileFailed",
+      callback = function()
+        vim.notify("LaTeX: compile failed (<localleader>le for errors)", vim.log.levels.WARN)
+      end,
+    })
   end,
 }

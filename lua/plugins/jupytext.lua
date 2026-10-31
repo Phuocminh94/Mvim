@@ -33,6 +33,11 @@ return {
             on_exit = function(_, code)
               if code ~= 0 then
                 vim.notify("Jupytext: Sync Error!", vim.log.levels.ERROR)
+              else
+                -- jupytext rewrites the file after :w; reload so the next :w does not warn
+                vim.schedule(function()
+                  vim.cmd("checktime")
+                end)
               end
             end,
           })

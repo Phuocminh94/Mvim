@@ -147,6 +147,10 @@ return {
       },
     },
     -- Every module given a table here is enabled; the others stay off.
+    -- Images and LaTeX math ($...$, $$...$$) shown inline in markdown, through
+    -- the Kitty graphics protocol (ghostty; herdr passes it on: [terminal]
+    -- kitty_graphics, on by default). Math is compiled with pdflatex + magick.
+    image = {},
     notifier = {
       timeout = 3000, -- Disappear after 3s
     },

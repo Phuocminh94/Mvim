@@ -1,6 +1,11 @@
 -- Colorscheme. ColorColumn, statusline colors and transparency are re-applied
 -- on every ColorScheme event by minh.highlights.
-local theme_path = vim.fn.expand("~/.local/state/omarchy/current/theme/neovim.lua")
+-- lua/minh/theme.lua is a per-machine symlink (on Omarchy a hook points it at the theme's own
+-- neovim.lua or at a personal override); fall back to the Omarchy file when it is missing.
+local theme_path = vim.fn.stdpath("config") .. "/lua/minh/theme.lua"
+if not vim.uv.fs_stat(theme_path) then
+  theme_path = vim.fn.expand("~/.local/state/omarchy/current/theme/neovim.lua")
+end
 
 local aether = {
   "bjarneo/aether.nvim",
