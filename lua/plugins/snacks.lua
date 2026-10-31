@@ -147,9 +147,11 @@ return {
       },
     },
     -- Every module given a table here is enabled; the others stay off.
-    -- Images and LaTeX math ($...$, $$...$$) shown inline in markdown, through
-    -- the Kitty graphics protocol (ghostty; herdr passes it on: [terminal]
-    -- kitty_graphics, on by default). Math is compiled with pdflatex + magick.
+    -- Images and LaTeX math shown inline in markdown, through the Kitty graphics
+    -- protocol (ghostty; herdr passes it on: [terminal] kitty_graphics, on by
+    -- default). Math is compiled with pdflatex + magick. Only $$...$$ and math
+    -- environments become images (queries/latex/images.scm drops the inline rule,
+    -- snacks stretched inline formula images); render-markdown draws the inline ones.
     image = {},
     notifier = {
       timeout = 3000, -- Disappear after 3s
