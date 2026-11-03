@@ -8,20 +8,20 @@
 --   ask_clipboard() same, but sends the system clipboard (terminal output, a
 --                browser snippet...) as a code block; the question may be empty;
 --                in visual mode, copies the selection first
---   transcript() toggle the whole conversation of the session in a float
---                (markdown): [[ ]] prompts, yank just the part you need; it
---                reopens where you left the cursor, or at the first new prompt
 --   start(args)  start Claude with CLI args (--resume, --model X), no focus
---   toggle()     show/hide the pane (starts it if needed) without focusing it
+--   toggle()     go into the pane in Normal mode (shows/starts it if needed),
+--                or hide it from inside; `i` types to Claude
 --   quit()       end the session with /exit (no "exited with code" error)
 --   watch_files() reload buffers Claude edits on disk while the pane runs
 --   key(bytes)   type raw keys into the pane: "1"/"2"/"3" for permission
 --                prompts, "\27" (<Esc>) to interrupt, "\r" for Enter
---   page(dir)    scroll the conversation half a screen (PgUp/PgDn sent to Claude)
 --   select_model() choose a model by exact version (/model in a running pane)
+--   commands()   every tool call of the session in a tab (sh): Bash commands
+--                verbatim with description and first output lines, to learn from
 --   scroll_mode() browse the transcript: [ ] prompts, j k d u g G; other key exits
 --
--- The pane must already be running (<leader>at); this never focuses it.
+-- The pane must already be running (<leader>ac); apart from toggle(), this
+-- never focuses it.
 -- Built on claudecode.terminal, whose send_to_terminal() does the chansend.
 -- =============================================================================
 
@@ -40,7 +40,7 @@ end
 local function pane()
   local bufnr = terminal().get_active_terminal_bufnr()
   if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
-    vim.notify("Claude is not running (<leader>at)", vim.log.levels.WARN)
+    vim.notify("Claude is not running (<leader>ac)", vim.log.levels.WARN)
     return nil
   end
   return bufnr
@@ -80,12 +80,21 @@ local function reference(visual)
   return first == last and ("@%s#L%d"):format(path, first) or ("@%s#L%d-%d"):format(path, first, last)
 end
 
+--- The window showing the pane, or nil. A hidden float keeps its window (with
+--- `hide` set in its config), so a window alone does not mean visible.
+local function visible_win(bufnr)
+  for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+    if not vim.api.nvim_win_get_config(win).hide then
+      return win
+    end
+  end
+end
+
 --- A hidden pane stays hidden (it still gets the text and keeps working): say so,
---- since a permission prompt there would wait unseen. <leader>at shows it,
---- <leader>ac shows the conversation.
+--- since a permission prompt there would wait unseen. <leader>ac shows it.
 local function note_if_hidden(bufnr)
-  if #vim.fn.win_findbuf(bufnr) == 0 then
-    vim.notify("Sent to Claude (pane hidden: <leader>at to show)", vim.log.levels.INFO)
+  if not visible_win(bufnr) then
+    vim.notify("Sent to Claude (pane hidden: <leader>ac to show)", vim.log.levels.INFO)
   end
 end
 
@@ -305,206 +314,6 @@ function M.ask_clipboard()
   end, true)
 end
 
---- Newest transcript of a Claude session started in nvim's cwd. Claude Code keeps
---- them as ~/.claude/projects/<cwd, non-alphanumerics as "-">/<session>.jsonl.
-local function transcript_file()
-  local dir = vim.fs.joinpath(vim.env.HOME, ".claude", "projects", (vim.fn.getcwd():gsub("[^%w]", "-")))
-  local newest, newest_mtime = nil, -1
-  for _, file in ipairs(vim.fn.glob(dir .. "/*.jsonl", false, true)) do
-    local stat = vim.uv.fs_stat(file)
-    if stat and stat.mtime.sec > newest_mtime then
-      newest, newest_mtime = file, stat.mtime.sec
-    end
-  end
-  return newest
-end
-
---- Markdown lines of the conversation in `file`: one "## ▶ <prompt>" heading per
---- prompt, then Claude's text replies. Tool calls collapse to one "tools:" line.
---- This reads Claude Code's internal format, which is not a stable API.
-local function transcript_lines(file)
-  local lines, tools = {}, {}
-  local function flush_tools()
-    if #tools > 0 then
-      vim.list_extend(lines, { "", "_tools: " .. table.concat(tools, ", ") .. "_" })
-      tools = {}
-    end
-  end
-  local function add_text(text)
-    flush_tools()
-    table.insert(lines, "")
-    vim.list_extend(lines, vim.split(vim.trim(text), "\n", { plain = true }))
-  end
-  for raw in io.lines(file) do
-    -- Tool results (file contents, command output) are most of the file: skip
-    -- them unparsed.
-    if raw:find('"type":"user"', 1, true) and not raw:find('"tool_result"', 1, true) then
-      local ok, entry = pcall(vim.json.decode, raw)
-      local content = ok and type(entry) == "table" and not entry.isMeta and entry.message and entry.message.content
-      if type(content) == "table" then
-        local texts = {}
-        for _, part in ipairs(content) do
-          if part.type == "text" then
-            table.insert(texts, part.text)
-          end
-        end
-        content = table.concat(texts, "\n")
-      end
-      -- Slash commands and their output come wrapped in <tags>; leave them out.
-      if
-        type(content) == "string"
-        and content ~= ""
-        and not content:match("^%s*<")
-        and not content:match("^%[Request interrupted")
-      then
-        flush_tools()
-        local prompt = vim.split(vim.trim(content), "\n", { plain = true })
-        vim.list_extend(lines, { "", "## ▶ " .. prompt[1] })
-        for i = 2, #prompt do
-          table.insert(lines, "> " .. prompt[i])
-        end
-      end
-    elseif raw:find('"type":"assistant"', 1, true) then
-      local ok, entry = pcall(vim.json.decode, raw)
-      local content = ok and type(entry) == "table" and entry.message and entry.message.content
-      for _, part in ipairs(type(content) == "table" and content or {}) do
-        if part.type == "text" and vim.trim(part.text) ~= "" then
-          add_text(part.text)
-        elseif part.type == "tool_use" then
-          table.insert(tools, part.name)
-        end
-      end
-    end
-  end
-  flush_tools()
-  while lines[1] == "" do
-    table.remove(lines, 1)
-  end
-  return lines
-end
-
---- Jump to the next (1) or previous (-1) prompt heading.
-local function jump_prompt(direction)
-  vim.fn.search("^## ▶", direction > 0 and "W" or "bW")
-end
-
--- The conversation float keeps its buffer between toggles, so the cursor stays
--- where you left it; the text is rebuilt only when the transcript file changes.
-local view = { buf = nil, win = nil, file = nil, mtime = nil, cursor = nil, prompts = 0 }
-
-local function hide_transcript()
-  if view.win and vim.api.nvim_win_is_valid(view.win) then
-    view.cursor = vim.api.nvim_win_get_cursor(view.win)
-    vim.api.nvim_win_close(view.win, true)
-  end
-  view.win = nil
-end
-
---- Fill (or refill) the conversation buffer from `file`. False if unreadable.
-local function load_transcript(file, mtime)
-  local ok, lines = pcall(transcript_lines, file)
-  if not ok or #lines == 0 then
-    vim.notify("Claude: could not read " .. vim.fn.fnamemodify(file, ":t"), vim.log.levels.WARN)
-    return false
-  end
-  if not (view.buf and vim.api.nvim_buf_is_valid(view.buf)) then
-    view.buf = vim.api.nvim_create_buf(false, true)
-    vim.bo[view.buf].bufhidden = "hide"
-    vim.bo[view.buf].filetype = "markdown"
-    local function map(lhs, fn)
-      vim.keymap.set("n", lhs, fn, { buffer = view.buf, nowait = true })
-    end
-    map("q", hide_transcript)
-    map("<Esc>", hide_transcript)
-    for lhs, direction in pairs({ ["]]"] = 1, ["]a"] = 1, ["[["] = -1, ["[a"] = -1 }) do
-      map(lhs, function()
-        jump_prompt(direction)
-      end)
-    end
-  end
-  vim.bo[view.buf].modifiable = true
-  vim.api.nvim_buf_set_lines(view.buf, 0, -1, false, lines)
-  vim.bo[view.buf].modifiable = false
-  -- Prompt heading lines; a new prompt since the last look moves the cursor to
-  -- the first new one, otherwise the cursor stays where it was left.
-  local headings = {}
-  for i, line in ipairs(lines) do
-    if line:match("^## ▶") then
-      table.insert(headings, i)
-    end
-  end
-  if view.file ~= file then
-    view.cursor = nil -- another session: start at its last answer
-  elseif view.cursor and #headings > view.prompts then
-    view.cursor = { headings[view.prompts + 1], 0 }
-    view.scroll_top = true
-  end
-  view.file, view.mtime, view.prompts = file, mtime, #headings
-  return true
-end
-
---- Toggle the whole conversation of the current session in a float (markdown):
---- [[ ]] (or [a ]a) jump between prompts, select + y copies, q hides. Reopening
---- returns to where the cursor was, or to the first new prompt if you asked
---- something since; the first time it starts at the last answer.
---- Works whether or not the pane is running.
-function M.transcript()
-  if view.win and vim.api.nvim_win_is_valid(view.win) then
-    hide_transcript()
-    return
-  end
-  local file = transcript_file()
-  if not file then
-    vim.notify("Claude: no session transcript for " .. vim.fn.getcwd(), vim.log.levels.WARN)
-    return
-  end
-  local stat = vim.uv.fs_stat(file)
-  local mtime = stat and stat.mtime.sec
-  local fresh = view.buf and vim.api.nvim_buf_is_valid(view.buf) and view.file == file and view.mtime == mtime
-  if not fresh and not load_transcript(file, mtime) then
-    return
-  end
-
-  local width = math.min(100, vim.o.columns - 4)
-  local height = math.max(3, math.floor((vim.o.lines - 4) * 0.8))
-  view.win = vim.api.nvim_open_win(view.buf, true, {
-    relative = "editor",
-    row = math.floor((vim.o.lines - height) / 2) - 1,
-    col = math.floor((vim.o.columns - width) / 2),
-    width = width,
-    height = height,
-    border = "rounded",
-    title = " Claude conversation ",
-    title_pos = "center",
-    footer = " [[ ]] prompts · select + y copy · q hide ",
-    footer_pos = "center",
-  })
-  vim.wo[view.win].wrap = true
-  vim.wo[view.win].linebreak = true
-  -- Leaving the float any other way (clicking out, <C-w>w) also hides it.
-  vim.api.nvim_create_autocmd("WinLeave", {
-    buffer = view.buf,
-    once = true,
-    callback = function()
-      vim.schedule(hide_transcript)
-    end,
-  })
-
-  local last = vim.api.nvim_buf_line_count(view.buf)
-  if view.cursor then
-    vim.api.nvim_win_set_cursor(view.win, { math.min(view.cursor[1], last), view.cursor[2] })
-    if view.scroll_top then
-      vim.cmd("normal! zt")
-      view.scroll_top = false
-    end
-  else
-    -- Start at the last prompt, scrolled so its answer fills the window.
-    vim.api.nvim_win_set_cursor(view.win, { last, 0 })
-    jump_prompt(-1)
-    vim.cmd("normal! zt")
-  end
-end
-
 --- End the session with /exit: Claude quits with code 0, unlike ClaudeCodeClose,
 --- which kills it and makes the plugin report "exited with code -1".
 function M.quit()
@@ -521,13 +330,40 @@ function M.start(args)
   terminal().ensure_visible(nil, args)
 end
 
---- Show or hide the pane without moving focus into it.
+--- Move into the pane in Normal mode, to read, search and yank through the
+--- conversation (`i` types to Claude); from inside the pane, hide it. Shows the
+--- pane first if hidden, starting Claude if needed.
 function M.toggle()
   local bufnr = terminal().get_active_terminal_bufnr()
-  if bufnr and vim.fn.bufwinid(bufnr) ~= -1 then
-    terminal().simple_toggle() -- visible: hide
-  else
-    terminal().ensure_visible() -- hidden or not started: show/start, no focus
+  local win = bufnr and visible_win(bufnr)
+  if win and win == vim.api.nvim_get_current_win() then
+    terminal().simple_toggle() -- in the pane: hide
+    -- The plugin leaves the hidden float with `wincmd p`, which can leave the
+    -- cursor in it (no valid previous window): then go to the previous window
+    -- if it is a plain visible one, else the first such window of the tab.
+    if vim.api.nvim_win_get_config(0).hide then
+      local function plain(w)
+        local cfg = w ~= 0 and vim.api.nvim_win_is_valid(w) and vim.api.nvim_win_get_config(w)
+        return cfg and cfg.relative == "" and not cfg.hide
+      end
+      local target = vim.fn.win_getid(vim.fn.winnr("#"))
+      if not plain(target) then
+        target = vim.iter(vim.api.nvim_tabpage_list_wins(0)):find(plain)
+      end
+      if target then
+        vim.api.nvim_set_current_win(target)
+      end
+    end
+    return
+  end
+  if not win then
+    terminal().ensure_visible()
+    bufnr = terminal().get_active_terminal_bufnr()
+    win = bufnr and visible_win(bufnr)
+  end
+  if win then
+    vim.api.nvim_set_current_win(win)
+    vim.cmd.stopinsert()
   end
 end
 
@@ -544,16 +380,6 @@ function M.key(bytes)
   if not chan or chan == 0 or vim.fn.chansend(chan, bytes) == 0 then
     vim.notify("Claude: the pane's process is not accepting input", vim.log.levels.WARN)
   end
-end
-
--- Claude Code (fullscreen renderer) scrolls its own conversation in the alternate
--- screen, so the nvim window cannot scroll it: send the keys it documents instead.
-local PGUP, PGDN = "\27[5~", "\27[6~"
-local TOP, BOTTOM = "\27[1;5H", "\27[1;5F" -- Ctrl+Home, Ctrl+End
-
---- Scroll the conversation half a screen: 1 = down, -1 = up.
-function M.page(direction)
-  M.key(direction > 0 and PGDN or PGUP)
 end
 
 -- Transcript view (Ctrl+O) of Claude Code: j/k, Ctrl+d/Ctrl+u, g/G scroll and
@@ -594,6 +420,137 @@ function M.scroll_mode()
   end
   M.key("q")
   vim.api.nvim_echo({ { "" } }, false, {})
+end
+
+--- Newest transcript of a Claude session started in nvim's cwd. Claude Code keeps
+--- them as ~/.claude/projects/<cwd, non-alphanumerics as "-">/<session>.jsonl.
+local function transcript_file()
+  local dir = vim.fs.joinpath(vim.env.HOME, ".claude", "projects", (vim.fn.getcwd():gsub("[^%w]", "-")))
+  local newest, newest_mtime = nil, -1
+  for _, file in ipairs(vim.fn.glob(dir .. "/*.jsonl", false, true)) do
+    local stat = vim.uv.fs_stat(file)
+    if stat and stat.mtime.sec > newest_mtime then
+      newest, newest_mtime = file, stat.mtime.sec
+    end
+  end
+  return newest
+end
+
+local OUTPUT_LINES = 5 -- output lines kept under each command
+
+--- Tool calls of the session in `file`, in order: { name, input, output, error }.
+--- Only lines holding a tool call or result are decoded. This reads Claude Code's
+--- internal format, which is not a stable API.
+local function tool_calls(file)
+  local calls, by_id = {}, {}
+  for raw in io.lines(file) do
+    if raw:find('"tool_use"', 1, true) or raw:find('"tool_result"', 1, true) then
+      local ok, entry = pcall(vim.json.decode, raw)
+      local content = ok and type(entry) == "table" and entry.message and entry.message.content
+      for _, part in ipairs(type(content) == "table" and content or {}) do
+        if part.type == "tool_use" then
+          local call = { name = part.name, input = part.input or {} }
+          table.insert(calls, call)
+          by_id[part.id] = call
+        elseif part.type == "tool_result" and by_id[part.tool_use_id] then
+          local out = part.content
+          if type(out) == "table" then
+            local texts = {}
+            for _, p in ipairs(out) do
+              if p.type == "text" then
+                table.insert(texts, p.text)
+              end
+            end
+            out = table.concat(texts, "\n")
+          end
+          local call = by_id[part.tool_use_id]
+          call.output, call.error = type(out) == "string" and out or "", part.is_error == true
+        end
+      end
+    end
+  end
+  return calls
+end
+
+--- One-line summary of a non-Bash tool call (its main argument).
+local function call_summary(call)
+  local i = call.input
+  local arg = i.file_path or i.pattern or i.query or i.url or i.skill or i.path or i.description
+  if call.name == "Grep" and i.path then
+    arg = ('"%s" in %s'):format(i.pattern, i.path)
+  end
+  if not arg then
+    arg = vim.json.encode(i):sub(1, 120)
+  end
+  return call.name .. " " .. tostring(arg)
+end
+
+--- Lines of one tool call: Bash as "# description", the command and its first
+--- output lines as comments; any other tool as one "# Tool argument" line.
+local function call_lines(call)
+  if call.name ~= "Bash" then
+    return { "# · " .. call_summary(call) }
+  end
+  -- Some sessions record no description: the header still marks where a command starts.
+  local lines = { "# ▸ " .. (call.input.description or "Bash") .. (call.error and "  [error]" or "") }
+  vim.list_extend(lines, vim.split(call.input.command or "", "\n", { plain = true }))
+  local out = vim.split(vim.trim(call.output or ""), "\n", { plain = true })
+  if out[1] ~= "" then
+    for n = 1, math.min(#out, OUTPUT_LINES) do
+      table.insert(lines, "#   │ " .. out[n])
+    end
+    if #out > OUTPUT_LINES then
+      table.insert(lines, ("#   │ … +%d lines"):format(#out - OUTPUT_LINES))
+    end
+  end
+  return lines
+end
+
+--- Every tool call of the current session in a buffer (filetype sh), to read and
+--- learn from: Bash commands verbatim with their description and first output
+--- lines, other tools (Read, Edit, Grep...) as one comment line each. Newest
+--- first; `r` reverses the order, `q` closes. Works whether or not the pane runs.
+function M.commands()
+  local file = transcript_file()
+  if not file then
+    vim.notify("Claude: no session transcript for " .. vim.fn.getcwd(), vim.log.levels.WARN)
+    return
+  end
+  local ok, calls = pcall(tool_calls, file)
+  if not ok then
+    vim.notify("Claude: could not read " .. vim.fn.fnamemodify(file, ":t"), vim.log.levels.WARN)
+    return
+  end
+  if #calls == 0 then
+    vim.notify("Claude: no commands in this session yet", vim.log.levels.INFO)
+    return
+  end
+  local newest_first = true
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.bo[buf].bufhidden = "wipe"
+  local function render()
+    local lines = {}
+    for n = 1, #calls do
+      local call = calls[newest_first and #calls - n + 1 or n]
+      if n > 1 then
+        table.insert(lines, "")
+      end
+      vim.list_extend(lines, call_lines(call))
+    end
+    vim.bo[buf].modifiable = true
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+    vim.bo[buf].modifiable = false
+  end
+  render()
+  vim.bo[buf].filetype = "sh"
+  vim.cmd("tab sbuffer " .. buf)
+  vim.keymap.set("n", "q", "<cmd>bwipeout<cr>", { buffer = buf, desc = "Close" })
+  vim.keymap.set("n", "r", function()
+    newest_first = not newest_first
+    render()
+    vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  end, { buffer = buf, desc = "Reverse order (newest/oldest first)" })
+  vim.notify(("Claude: %d tool calls (%s first) · r reverse · q close"):format(#calls, "newest"))
 end
 
 --- Exact versions in the labels; the plugin's own list only has "(Latest)" aliases.

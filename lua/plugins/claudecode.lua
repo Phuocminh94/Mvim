@@ -6,13 +6,23 @@ return {
   cmd = { "ClaudeCode", "ClaudeCodeFocus", "ClaudeCodeAdd", "ClaudeCodeSend" },
   keys = {
     {
-      "<leader>at",
+      "<leader>ac",
       function()
         require("minh.claude").toggle()
       end,
-      desc = "Claude: toggle (no focus)",
+      desc = "Claude: go to pane, Normal mode (hide from inside)",
     },
-    { "<leader>af", "<cmd>ClaudeCodeFocus<cr>", desc = "Claude: focus" },
+    {
+      "<leader>af",
+      function()
+        vim.cmd("ClaudeCodeFocus")
+        -- auto_insert is off (Normal mode on entering the pane): this one is to type.
+        if vim.bo.buftype == "terminal" then
+          vim.cmd.startinsert()
+        end
+      end,
+      desc = "Claude: focus to type",
+    },
     { "<leader>ab", "<cmd>ClaudeCodeAdd %<cr>", desc = "Claude: add buffer" },
     { "<leader>as", "<cmd>ClaudeCodeSend<cr>", mode = "x", desc = "Claude: send selection" },
     { "<leader>ay", "<cmd>ClaudeCodeDiffAccept<cr>", desc = "Claude: accept diff" },
@@ -25,7 +35,17 @@ return {
       desc = "Claude: select model",
     },
     -- Session: the pane is one session; these only apply when no pane is running.
-    { "<leader>ar", "<cmd>ClaudeCode --resume<cr>", desc = "Claude: resume (pick session)" },
+    {
+      "<leader>ar",
+      function()
+        vim.cmd("ClaudeCode --resume")
+        -- The session picker takes keys: Insert mode, not the pane's usual Normal.
+        if vim.bo.buftype == "terminal" then
+          vim.cmd.startinsert()
+        end
+      end,
+      desc = "Claude: resume (pick session)",
+    },
     {
       "<leader>aq",
       function()
@@ -58,11 +78,11 @@ return {
       desc = "Claude: send clipboard / selection (+ optional question)",
     },
     {
-      "<leader>ac",
+      "<leader>al",
       function()
-        require("minh.claude").transcript()
+        require("minh.claude").commands()
       end,
-      desc = "Claude: conversation (browse, copy from it)",
+      desc = "Claude: list the session's commands (to learn from)",
     },
     {
       "<leader>a1",
@@ -106,23 +126,24 @@ return {
       end,
       desc = "Claude: browse transcript ([ ] j k d u g G)",
     },
-    {
-      "<A-d>",
-      function()
-        require("minh.claude").page(1)
-      end,
-      desc = "Claude: scroll half page down",
-    },
-    {
-      "<A-u>",
-      function()
-        require("minh.claude").page(-1)
-      end,
-      desc = "Claude: scroll half page up",
-    },
   },
   config = function()
-    require("claudecode").setup({ models = require("minh.claude").MODELS })
+    require("claudecode").setup({
+      models = require("minh.claude").MODELS,
+      -- The default renderer prints the conversation like any program, so it
+      -- lands in the terminal buffer's scrollback: <C-\><C-n> then moves, searches
+      -- and yanks through all of it. Fullscreen keeps it inside Claude and nvim
+      -- only sees the visible screen. Only this pane; ~/.claude/settings.json
+      -- keeps its own "tui". Single quotes: claudecode splits this like a shell.
+      terminal_cmd = [[claude --settings '{"tui":"default"}']],
+      -- Entering the pane (<leader>ac, a click, <C-w>) lands in Normal mode, the
+      -- cursor free to move and yank; `i` (or <leader>af) to type.
+      -- A float over the editor; <leader>ac hides it again.
+      terminal = {
+        auto_insert = false,
+        snacks_win_opts = { position = "float", width = 0.85, height = 0.85, border = "rounded" },
+      },
+    })
 
     -- Show what Claude wrote: reload buffers changed on disk (see minh.claude).
     vim.o.autoread = true
@@ -146,6 +167,24 @@ return {
       callback = function(args)
         if vim.api.nvim_buf_get_name(args.buf):find("claude", 1, true) then
           vim.keymap.set("t", "<Esc>", "<Esc>", { buffer = args.buf, desc = "Send <Esc> to Claude" })
+          -- The whole conversation lives in the scrollback: keep a long session.
+          vim.bo[args.buf].scrollback = 100000
+          -- <A-u>/<A-d> scroll half a page, only inside the pane (a hidden float is
+          -- no use scrolling from outside). Terminal mode keeps the view at the
+          -- bottom, so while typing they leave it first (`i` to type again).
+          vim.keymap.set("t", "<A-u>", [[<C-\><C-n><C-u>]], { buffer = args.buf, desc = "Claude: scroll up (Normal mode)" })
+          vim.keymap.set("t", "<A-d>", [[<C-\><C-n><C-d>]], { buffer = args.buf, desc = "Claude: scroll down (Normal mode)" })
+          vim.keymap.set("n", "<A-u>", "<C-u>", { buffer = args.buf, desc = "Claude: scroll up" })
+          vim.keymap.set("n", "<A-d>", "<C-d>", { buffer = args.buf, desc = "Claude: scroll down" })
+          -- q in Normal mode hides the float (no macros in a terminal; same as <leader>ac).
+          vim.keymap.set("n", "q", function()
+            require("minh.claude").toggle()
+          end, { buffer = args.buf, desc = "Claude: hide the pane" })
+          -- In Normal mode <C-o> would jump back to the previous buffer; send it to
+          -- Claude instead (expands the "ctrl+o to expand" tool output).
+          vim.keymap.set("n", "<C-o>", function()
+            require("minh.claude").key("\15")
+          end, { buffer = args.buf, desc = "Send <C-o> to Claude (expand tool output)" })
         end
       end,
     })

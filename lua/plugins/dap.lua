@@ -179,7 +179,7 @@ return {
       -- dap-ui panes have fixed sizes, so when space runs short nvim squeezes one
       -- of them to a column or two and it stays that way: on a resize of the
       -- editor (herdr pane resize or zoom), and when a split opens or closes
-      -- beside them (the Claude pane, <leader>at). Re-apply the layout sizes after
+      -- beside them (the Claude pane, <leader>ac). Re-apply the layout sizes after
       -- either (this runs after the global `wincmd =` in minh.autocmd).
       local resetting = false
       vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
