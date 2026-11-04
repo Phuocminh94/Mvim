@@ -16,6 +16,7 @@
 --   key(bytes)   type raw keys into the pane: "1"/"2"/"3" for permission
 --                prompts, "\27" (<Esc>) to interrupt, "\r" for Enter
 --   select_model() choose a model by exact version (/model in a running pane)
+--   toggle_markdown() render math in the pane (pretend markdown) or back to text
 --   commands()   every tool call of the session in a tab (sh): Bash commands
 --                verbatim with description and first output lines, to learn from
 --   scroll_mode() browse the transcript: [ ] prompts, j k d u g G; other key exits
@@ -420,6 +421,151 @@ function M.scroll_mode()
   end
   M.key("q")
   vim.api.nvim_echo({ { "" } }, false, {})
+end
+
+--- snacks.image keeps its own list of the buffer's images (closing them alone
+--- does not stick: it shows them again on the next cursor move). Its refresh
+--- finds the formulas from treesitter, so on plain text it removes them all, and
+--- on markdown it draws them back.
+local function refresh_images(buf)
+  pcall(vim.api.nvim_exec_autocmds, "WinScrolled", { group = "snacks.image.inline." .. buf, buffer = buf })
+end
+
+--- Render what Claude printed since math rendering was turned on. Terminal
+--- output does not reach treesitter's change tracking, so the markdown tree
+--- stays at the text it first saw: reparse it all, then redraw (render-markdown
+--- forced, snacks.image). Runs on entering Normal mode in the pane.
+local function rerender_markdown(buf)
+  local win = vim.fn.bufwinid(buf)
+  if not vim.b[buf].claude_markdown or win == -1 then
+    return
+  end
+  -- Nothing printed since the last time (same length, same tail): skip.
+  local count = vim.api.nvim_buf_line_count(buf)
+  local sig = count .. table.concat(vim.api.nvim_buf_get_lines(buf, math.max(count - 20, 0), -1, false), "\n")
+  if vim.b[buf].claude_markdown_sig == sig then
+    return
+  end
+  vim.b[buf].claude_markdown_sig = sig
+  local ok, parser = pcall(vim.treesitter.get_parser, buf)
+  if ok and parser then
+    parser:invalidate(true)
+    -- Only the visible lines (a full parse of a long session is ~90 ms);
+    -- render-markdown parses the rest itself as you scroll to it.
+    parser:parse({ vim.fn.line("w0", win) - 1, vim.fn.line("w$", win) })
+  end
+  -- Internal module: the public API has no forced redraw of one buffer.
+  pcall(function()
+    require("render-markdown.core.ui").update(buf, win, "ClaudeOutput", true)
+  end)
+  refresh_images(buf)
+end
+
+--- Keymaps and options of the pane's terminal buffer. Called on TermOpen and
+--- again after toggle_markdown(): filetype changes run ftplugins, and markdown's
+--- maps [[ ]] (its undo unmaps them), which would clobber the pane's own.
+function M.setup_pane(buf)
+  vim.keymap.set("t", "<Esc>", "<Esc>", { buffer = buf, desc = "Send <Esc> to Claude" })
+  -- The whole conversation lives in the scrollback: keep a long session.
+  vim.bo[buf].scrollback = 100000
+  -- <A-u>/<A-d> scroll half a page, only inside the pane (a hidden float is
+  -- no use scrolling from outside). Terminal mode keeps the view at the
+  -- bottom, so while typing they leave it first (`i` to type again).
+  vim.keymap.set("t", "<A-u>", [[<C-\><C-n><C-u>]], { buffer = buf, desc = "Claude: scroll up (Normal mode)" })
+  vim.keymap.set("t", "<A-d>", [[<C-\><C-n><C-d>]], { buffer = buf, desc = "Claude: scroll down (Normal mode)" })
+  vim.keymap.set("n", "<A-u>", "<C-u>", { buffer = buf, desc = "Claude: scroll up" })
+  vim.keymap.set("n", "<A-d>", "<C-d>", { buffer = buf, desc = "Claude: scroll down" })
+  -- q in Normal mode hides the float (no macros in a terminal; same as <leader>ac).
+  vim.keymap.set("n", "q", function()
+    M.toggle()
+  end, { buffer = buf, desc = "Claude: hide the pane" })
+  -- [[ / ]]: previous / next prompt of yours (Claude prints them as
+  -- "❯ text"), put at the top of the window with its answer below. The
+  -- input box is a "❯" line under a "───" rule: skipped.
+  local function prompt_line(lnum)
+    return not vim.fn.getline(lnum - 1):match("^%s*─")
+  end
+  for lhs, flags in pairs({ ["[["] = "bW", ["]]"] = "W" }) do
+    vim.keymap.set("n", lhs, function()
+      local start, found = vim.api.nvim_win_get_cursor(0), nil
+      for _ = 1, vim.v.count1 do
+        local lnum = vim.fn.search([[\v^\s*[❯›] ]], flags)
+        while lnum > 0 and not prompt_line(lnum) do
+          lnum = vim.fn.search([[\v^\s*[❯›] ]], flags)
+        end
+        if lnum == 0 then
+          break
+        end
+        found = lnum
+      end
+      -- search() moved the cursor even onto skipped lines: settle it.
+      vim.api.nvim_win_set_cursor(0, found and { found, 0 } or start)
+      if found then
+        vim.cmd("normal! zt")
+      end
+    end, { buffer = buf, desc = "Claude: " .. (lhs == "[[" and "previous" or "next") .. " prompt" })
+  end
+  -- m: render math in the pane (markdown) or back to plain text.
+  vim.keymap.set("n", "m", function()
+    M.toggle_markdown()
+  end, { buffer = buf, desc = "Claude: toggle math rendering" })
+  -- In Normal mode <C-o> would jump back to the previous buffer; send it to
+  -- Claude instead (expands the "ctrl+o to expand" tool output).
+  vim.keymap.set("n", "<C-o>", function()
+    M.key("\15")
+  end, { buffer = buf, desc = "Send <C-o> to Claude (expand tool output)" })
+  -- With math rendering on, draw what Claude printed meanwhile when you stop
+  -- typing (Terminal -> Normal mode) or come back to the pane.
+  local group = vim.api.nvim_create_augroup("claude_pane_markdown." .. buf, { clear = true })
+  vim.api.nvim_create_autocmd("ModeChanged", {
+    group = group,
+    buffer = buf,
+    callback = function()
+      if vim.fn.mode(true) == "nt" then
+        rerender_markdown(buf)
+      end
+    end,
+  })
+  vim.api.nvim_create_autocmd("BufWinEnter", {
+    group = group,
+    buffer = buf,
+    callback = function()
+      rerender_markdown(buf)
+    end,
+  })
+end
+
+--- Toggle math rendering in the pane (`m` in its Normal mode): the terminal buffer
+--- pretends to be markdown, so render-markdown draws inline $...$ as unicode and
+--- snacks.image draws $$...$$ blocks. The text is Claude's output, hard-wrapped at
+--- the pane width: a formula cut by a wrap renders wrong.
+function M.toggle_markdown()
+  local buf = vim.api.nvim_get_current_buf()
+  if vim.b[buf].claude_markdown then
+    vim.b[buf].claude_markdown = false
+    pcall(function()
+      require("render-markdown").buf_disable()
+    end)
+    vim.treesitter.stop(buf)
+    -- Not "": with no filetype, treesitter keeps handing out the cached markdown
+    -- parser. A filetype with no parser makes the lookup fail, as snacks needs.
+    vim.bo[buf].filetype = "claude"
+    M.setup_pane(buf)
+    refresh_images(buf)
+    vim.notify("Claude pane: plain text", vim.log.levels.INFO)
+    return
+  end
+  vim.b[buf].claude_markdown = true
+  -- Loaded first: render-markdown only attaches on a FileType event it sees.
+  pcall(require("lazy").load, { plugins = { "render-markdown.nvim" } })
+  vim.bo[buf].filetype = "markdown"
+  vim.wo.spell = false -- the markdown FileType autocmd turns it on
+  M.setup_pane(buf)
+  pcall(function()
+    require("render-markdown").buf_enable()
+  end)
+  refresh_images(buf) -- a second time on: snacks is attached already, so redraw
+  vim.notify("Claude pane: math rendered (m: back to plain text)", vim.log.levels.INFO)
 end
 
 --- Newest transcript of a Claude session started in nvim's cwd. Claude Code keeps

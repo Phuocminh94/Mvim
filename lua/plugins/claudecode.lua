@@ -160,31 +160,14 @@ return {
     })
     require("minh.claude").watch_files()
 
-    -- Claude Code uses <Esc> to interrupt, so pass it through instead of the
-    -- global `t <Esc>` (leave terminal mode). <C-\><C-n> still leaves it.
+    -- The pane's own keys (minh.claude.setup_pane): <Esc> goes to Claude (it
+    -- interrupts) instead of the global `t <Esc>`, <C-\><C-n> still leaves
+    -- Terminal mode; q, [[ ]], m, <C-o>, <A-u>/<A-d>.
     vim.api.nvim_create_autocmd("TermOpen", {
       group = vim.api.nvim_create_augroup("claudecode_term_esc", { clear = true }),
       callback = function(args)
         if vim.api.nvim_buf_get_name(args.buf):find("claude", 1, true) then
-          vim.keymap.set("t", "<Esc>", "<Esc>", { buffer = args.buf, desc = "Send <Esc> to Claude" })
-          -- The whole conversation lives in the scrollback: keep a long session.
-          vim.bo[args.buf].scrollback = 100000
-          -- <A-u>/<A-d> scroll half a page, only inside the pane (a hidden float is
-          -- no use scrolling from outside). Terminal mode keeps the view at the
-          -- bottom, so while typing they leave it first (`i` to type again).
-          vim.keymap.set("t", "<A-u>", [[<C-\><C-n><C-u>]], { buffer = args.buf, desc = "Claude: scroll up (Normal mode)" })
-          vim.keymap.set("t", "<A-d>", [[<C-\><C-n><C-d>]], { buffer = args.buf, desc = "Claude: scroll down (Normal mode)" })
-          vim.keymap.set("n", "<A-u>", "<C-u>", { buffer = args.buf, desc = "Claude: scroll up" })
-          vim.keymap.set("n", "<A-d>", "<C-d>", { buffer = args.buf, desc = "Claude: scroll down" })
-          -- q in Normal mode hides the float (no macros in a terminal; same as <leader>ac).
-          vim.keymap.set("n", "q", function()
-            require("minh.claude").toggle()
-          end, { buffer = args.buf, desc = "Claude: hide the pane" })
-          -- In Normal mode <C-o> would jump back to the previous buffer; send it to
-          -- Claude instead (expands the "ctrl+o to expand" tool output).
-          vim.keymap.set("n", "<C-o>", function()
-            require("minh.claude").key("\15")
-          end, { buffer = args.buf, desc = "Send <C-o> to Claude (expand tool output)" })
+          require("minh.claude").setup_pane(args.buf)
         end
       end,
     })
