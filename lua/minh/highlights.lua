@@ -61,10 +61,12 @@ end
 -- bar looks like a plain statusline; only the mode and cwd get an accent.
 -- colors/neovim.vim defines its own St_* groups, so leave those alone.
 local function statusline()
+  local sl, str = get("StatusLine"), get("String")
+  -- The Claude robot, in Claude's orange with any theme (neovim.vim included).
+  api.nvim_set_hl(0, "St_Claude", { bg = sl.bg, fg = "#D97757", bold = true })
   if vim.g.colors_name == "neovim" then
     return
   end
-  local sl, str = get("StatusLine"), get("String")
   api.nvim_set_hl(0, "St_Mode", { bg = sl.bg, fg = sl.fg, bold = true })
   api.nvim_set_hl(0, "St_Text", { bg = sl.bg, fg = sl.fg })
   api.nvim_set_hl(0, "St_CWD", { bg = sl.bg, fg = str.fg or sl.fg, bold = true })

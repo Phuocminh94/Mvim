@@ -121,6 +121,19 @@ end
 
 M.cursor = "%#St_Text# Ln %l/%L, Col %v · %p%%  "
 
+-- A robot while this nvim runs the Claude pane (claudecode.nvim), hidden or not,
+-- to tell at a glance which session has Claude. Only once the plugin is loaded:
+-- requiring it here would load it on every redraw.
+M.claude = function()
+  local term = package.loaded["claudecode.terminal"]
+  local buf = term and term.get_active_terminal_bufnr()
+  local job = buf and vim.api.nvim_buf_is_valid(buf) and vim.b[buf].terminal_job_id
+  if not job or fn.jobwait({ job }, 0)[1] ~= -1 then
+    return ""
+  end
+  return "%#St_Claude#󰚩 "
+end
+
 M.recording = function()
   local reg = vim.fn.reg_recording()
   if reg == "" then
@@ -138,6 +151,7 @@ M.build_statusline = function()
     M.clock(),
     M.recording(),
     "%=",
+    M.claude(),
     M.cursor,
     M.cwd(),
   })
@@ -162,6 +176,14 @@ M.setup = function()
       vim.cmd.redrawstatus()
     end)
   )
+
+  -- Show / drop the Claude robot as soon as a terminal starts or ends.
+  vim.api.nvim_create_autocmd({ "TermOpen", "TermClose" }, {
+    group = vim.api.nvim_create_augroup("minh_statusline_claude", { clear = true }),
+    callback = vim.schedule_wrap(function()
+      vim.cmd.redrawstatus()
+    end),
+  })
 end
 
 return M
