@@ -8,6 +8,7 @@ a/b, √x, C(n,k) and unicode sub/superscripts; the plain pieces left over
 Exits non-zero when utftex is missing, so the next converter is tried.
 """
 
+import re
 import shutil
 import subprocess
 import sys
@@ -42,6 +43,55 @@ SIZES = {
     s + t for s in ("big", "Big", "bigg", "Bigg") for t in ("", "l", "r", "m")
 }
 OPERATORS = set(" +-−=<>≤≥,/·⋅×±∓→↦∈∉⊂⊆∪∩∧∨")
+# environment -> (left, right) delimiters of its one-line form
+ENVS = {
+    "matrix": ("", ""), "smallmatrix": ("", ""), "pmatrix": ("(", ")"),
+    "bmatrix": ("[", "]"), "Bmatrix": ("{", "}"), "vmatrix": ("|", "|"),
+    "Vmatrix": ("‖", "‖"), "cases": ("{", ""), "array": ("", ""),
+    "aligned": ("", ""), "gathered": ("", ""),
+}
+
+
+def split_top(text, sep):
+    """Split text at sep outside braces."""
+    parts, depth, start, k = [], 0, 0, 0
+    while k < len(text):
+        c = text[k]
+        if c == "\\":
+            k += 2
+            continue
+        depth += c == "{"
+        depth -= c == "}"
+        if depth == 0 and text.startswith(sep, k):
+            parts.append(text[start:k])
+            start = k + len(sep)
+        k += 1
+    parts.append(text[start:])
+    return parts
+
+
+def split_rows(body):
+    """Rows of a matrix body. Claude Code's terminal renderer prints the row
+    break `\\\\` as `\\`, so a backslash followed by a space breaks rows too."""
+    rows, depth, start, k = [], 0, 0, 0
+    while k < len(body):
+        c = body[k]
+        if c == "\\" and body[k + 1:k + 2] in ("\\", " ", ""):
+            if depth == 0:
+                rows.append(body[start:k])
+                k += 2
+                start = k
+                continue
+        if c == "\\":
+            k += 2
+            continue
+        depth += c == "{"
+        depth -= c == "}"
+        k += 1
+    rows.append(body[start:])
+    # drop the optional spacing of a row break: \\[2pt]
+    rows = [re.sub(r"^\s*\[[^\]]*\]", "", r).strip() for r in rows]
+    return [r for r in rows if r]
 
 
 class Parser:
@@ -96,7 +146,29 @@ class Parser:
         self.i += 1
         return [("tex", c)]
 
+    def env(self):
+        """\\begin{env}...\\end{env}: a matrix or cases drawn on one line."""
+        name = self.raw_group().strip("{}")
+        end = "\\end{" + name + "}"
+        depth, k = 1, self.i
+        while depth and k < len(self.s):
+            if self.s.startswith("\\begin{" + name + "}", k):
+                depth += 1
+            elif self.s.startswith(end, k):
+                depth -= 1
+                if not depth:
+                    break
+            k += 1
+        body, self.i = self.s[self.i:k], k + len(end)
+        delims = ENVS.get(name)
+        if delims is None:
+            return [("tex", "\\begin{" + name + "}" + body + end)]
+        rows = [[Parser(c).seq() for c in split_top(r, "&")] for r in split_rows(body)]
+        return [("matrix", delims, rows)]
+
     def cmd(self, name):
+        if name == "begin":
+            return self.env()
         if name in FRACS:
             return [("frac", self.arg(), self.arg())]
         if name in BINOMS:
@@ -208,6 +280,9 @@ def render(nodes, conv):
             out += a + "/" + b
         elif kind == "binom":
             out += "C(" + render(n[1], conv) + "," + render(n[2], conv) + ")"
+        elif kind == "matrix":
+            rows = ["  ".join(render(c, conv).strip() for c in r) for r in n[2]]
+            out += n[1][0] + "; ".join(rows) + n[1][1]
         elif kind == "sqrt":
             body = render(n[2], conv).strip()
             root = {None: "√", "2": "√", "3": "∛", "4": "∜"}.get(n[1])
@@ -228,6 +303,10 @@ def tex_nodes(nodes, out):
             tex_nodes(n[2], out)
         elif n[0] == "sqrt":
             tex_nodes(n[2], out)
+        elif n[0] == "matrix":
+            for r in n[2]:
+                for c in r:
+                    tex_nodes(c, out)
 
 
 def main():
