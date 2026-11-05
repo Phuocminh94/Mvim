@@ -30,6 +30,8 @@ secrets, private paths or personal data here.
   `lua/plugins/snacks.lua` needs vntex (T5 fontenc; Arch: `texlive-langother`)
   and turns `\ ` into a row break in matrices, as Claude Code's terminal
   renderer prints `\\` as `\`.
+- macOS: `brew install utftex`; BasicTeX needs `sudo tlmgr install standalone
+  preview etoolbox mathtools xcolor vntex` (the dotfiles installer does both).
 - Formula images are cached in `~/.cache/nvim/snacks/image/`; delete the
   `*.math.*` files after changing the template.
 
