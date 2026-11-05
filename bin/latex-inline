@@ -1,0 +1,259 @@
+#!/usr/bin/env python3
+"""Inline LaTeX (stdin, no $) to unicode on ONE line, for render-markdown.
+
+utftex draws fractions, roots, binomials and big-operator limits over several
+lines, which render-markdown puts above/below the text line. Here those become
+a/b, √x, C(n,k) and unicode sub/superscripts; the plain pieces left over
+(symbols, \\mathbb, \\text...) still go through utftex, in one call.
+Exits non-zero when utftex is missing, so the next converter is tried.
+"""
+
+import shutil
+import subprocess
+import sys
+
+SEP = "␞"  # utftex passes it through untouched
+
+SUP = dict(zip(
+    "0123456789+-−=()abcdefghijklmnoprstuvwxyzABDEGHIJKLMNOPRTUVWαβγδεθιφχ⊤",
+    "⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁻⁼⁽⁾ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖʳˢᵗᵘᵛʷˣʸᶻᴬᴮᴰᴱᴳᴴᴵᴶᴷᴸᴹᴺᴼᴾᴿᵀᵁⱽᵂᵅᵝᵞᵟᵋᶿᶥᵠᵡᵀ",
+))
+SUB = dict(zip(
+    "0123456789+-−=()aehijklmnoprstuvxβγρφχ",
+    "₀₁₂₃₄₅₆₇₈₉₊₋₋₌₍₎ₐₑₕᵢⱼₖₗₘₙₒₚᵣₛₜᵤᵥₓᵦᵧᵨᵩᵪ",
+))
+KEEP_SUP = set("′″‴*∗†‡")  # already look raised
+KEEP_BOTH = set(", ")
+
+FRACS = {"frac", "dfrac", "tfrac", "cfrac"}
+BINOMS = {"binom", "dbinom", "tbinom"}
+BIGOPS = {
+    "sum": "∑", "prod": "∏", "coprod": "∐", "int": "∫", "iint": "∬",
+    "iiint": "∭", "oint": "∮", "bigcup": "⋃", "bigcap": "⋂",
+    "bigoplus": "⨁", "bigotimes": "⨂", "bigvee": "⋁", "bigwedge": "⋀",
+}
+OPNAMES = {
+    "det", "lim", "liminf", "limsup", "max", "min", "sup", "inf", "sin", "cos",
+    "tan", "cot", "sec", "csc", "sinh", "cosh", "tanh", "arcsin", "arccos",
+    "arctan", "log", "ln", "lg", "exp", "dim", "ker", "deg", "gcd", "hom",
+    "arg", "Pr", "tr", "rank", "mod",
+}
+SIZES = {
+    s + t for s in ("big", "Big", "bigg", "Bigg") for t in ("", "l", "r", "m")
+}
+OPERATORS = set(" +-−=<>≤≥,/·⋅×±∓→↦∈∉⊂⊆∪∩∧∨")
+
+
+class Parser:
+    def __init__(self, src):
+        self.s = src
+        self.i = 0
+
+    def peek(self):
+        return self.s[self.i] if self.i < len(self.s) else ""
+
+    def command(self):
+        """Read a command name after the backslash."""
+        start = self.i
+        while self.i < len(self.s) and self.s[self.i].isalpha():
+            self.i += 1
+        if self.i == start and self.i < len(self.s):
+            self.i += 1
+        return self.s[start:self.i]
+
+    def raw_group(self):
+        """A balanced {...} as raw text, braces included ("" when none)."""
+        while self.peek() == " ":
+            self.i += 1
+        if self.peek() != "{":
+            return ""
+        depth, start = 0, self.i
+        while self.i < len(self.s):
+            c = self.s[self.i]
+            if c == "\\":
+                self.i += 2
+                continue
+            depth += c == "{"
+            depth -= c == "}"
+            self.i += 1
+            if depth == 0:
+                break
+        return self.s[start:self.i]
+
+    def arg(self):
+        """One argument: a {group}, a \\command or a single character."""
+        while self.peek() == " ":
+            self.i += 1
+        c = self.peek()
+        if c == "{":
+            self.i += 1
+            nodes = self.seq("}")
+            self.i += 1
+            return nodes
+        if c == "\\":
+            self.i += 1
+            return self.cmd(self.command())
+        self.i += 1
+        return [("tex", c)]
+
+    def cmd(self, name):
+        if name in FRACS:
+            return [("frac", self.arg(), self.arg())]
+        if name in BINOMS:
+            return [("binom", self.arg(), self.arg())]
+        if name == "sqrt":
+            index = None
+            if self.peek() == "[":
+                end = self.s.find("]", self.i)
+                index, self.i = self.s[self.i + 1:end], end + 1
+            return [("sqrt", index, self.arg())]
+        if name in BIGOPS:
+            return [("lit", BIGOPS[name])]
+        if name in OPNAMES:
+            return [("op", name)]
+        if name == "operatorname":
+            return [("op", self.raw_group().strip("{}"))]
+        if name in SIZES or name in ("left", "right", "middle"):
+            if name in ("left", "right", "middle"):
+                if self.peek() == ".":
+                    self.i += 1
+                    return []
+                if self.peek() == "\\":
+                    self.i += 1
+                    return [("tex", "\\" + self.command())]
+                self.i += 1
+                return [("tex", self.s[self.i - 1])]
+            return []
+        if name in ("limits", "nolimits", "displaystyle", "textstyle", ","):
+            return []
+        # Anything else (\alpha, \mathbb{R}, \text{...}, \hat{x}): utftex's job.
+        return [("tex", "\\" + name + self.raw_group())]
+
+    def seq(self, end=""):
+        nodes = []
+        while self.i < len(self.s) and self.peek() != end:
+            c = self.peek()
+            if c == "\\":
+                self.i += 1
+                nodes += self.cmd(self.command())
+            elif c == "{":
+                self.i += 1
+                nodes.append(("group", self.seq("}")))
+                self.i += 1
+            elif c in "_^":
+                self.i += 1
+                nodes.append(("sub" if c == "_" else "sup", self.arg()))
+            else:
+                self.i += 1
+                nodes.append(("tex", c))
+        return nodes
+
+
+def script(text, table, keep, mark):
+    """text as sub/superscript characters, or mark(text) when one has none."""
+    if all(c in table or c in keep for c in text):
+        return "".join(table.get(c, c) for c in text)
+    return mark + (text if len(text) == 1 else "(" + text + ")")
+
+
+def atomic(text, denominator=False):
+    """True when text needs no parentheses as a fraction part."""
+    if any(c in OPERATORS for c in text):
+        return False
+    if not denominator or len(text) == 1 or text.isdigit():
+        return True
+    # one symbol followed only by sub/superscripts: xᵢ, Mᵀ
+    return all(c in SUP.values() or c in SUB.values() for c in text[1:])
+
+
+def spaced(nodes, k):
+    """Space after an operator (det M, ∑ᵢ xᵢ) unless a bracket or comma follows."""
+    while k < len(nodes) and nodes[k][0] in ("sub", "sup"):
+        k += 1
+    if k >= len(nodes):
+        return ""
+    n = nodes[k]
+    if n[0] == "tex" and (n[1] in "()[]{}|,.;" or n[1] in ("\\{", "\\|", "\\langle")):
+        return ""
+    return " "
+
+
+def render(nodes, conv):
+    out = ""
+    pending = ""  # space owed by an operator, written after its scripts
+    for k, n in enumerate(nodes):
+        kind = n[0]
+        if kind not in ("sub", "sup"):
+            out += pending
+            pending = ""
+        if kind == "tex":
+            out += conv[id(n)]
+        elif kind == "lit":
+            out += n[1]
+            if k + 1 < len(nodes) and nodes[k + 1][0] in ("sub", "sup"):
+                pending = spaced(nodes, k + 1)
+        elif kind == "op":
+            out += n[1]
+            pending = spaced(nodes, k + 1)
+        elif kind == "group":
+            out += render(n[1], conv)
+        elif kind == "sub":
+            out += script(render(n[1], conv), SUB, KEEP_BOTH, "_")
+        elif kind == "sup":
+            out += script(render(n[1], conv), SUP, KEEP_SUP | KEEP_BOTH, "^")
+        elif kind == "frac":
+            a, b = render(n[1], conv).strip(), render(n[2], conv).strip()
+            a = a if atomic(a) else "(" + a + ")"
+            b = b if atomic(b, True) else "(" + b + ")"
+            out += a + "/" + b
+        elif kind == "binom":
+            out += "C(" + render(n[1], conv) + "," + render(n[2], conv) + ")"
+        elif kind == "sqrt":
+            body = render(n[2], conv).strip()
+            root = {None: "√", "2": "√", "3": "∛", "4": "∜"}.get(n[1])
+            if root is None:
+                root = script(n[1], SUP, set(), "") + "√"
+            out += root + (body if atomic(body, True) else "(" + body + ")")
+    return out
+
+
+def tex_nodes(nodes, out):
+    for n in nodes:
+        if n[0] == "tex":
+            out.append(n)
+        elif n[0] in ("group", "sub", "sup"):
+            tex_nodes(n[1], out)
+        elif n[0] in ("frac", "binom"):
+            tex_nodes(n[1], out)
+            tex_nodes(n[2], out)
+        elif n[0] == "sqrt":
+            tex_nodes(n[2], out)
+
+
+def main():
+    utftex = shutil.which("utftex")
+    if not utftex:
+        return 1
+    # The Claude pane hard-wraps long lines: a formula can span lines.
+    src = " ".join(sys.stdin.read().split())
+    tree = Parser(src).seq()
+    texs = []
+    tex_nodes(tree, texs)
+    conv = {}
+    if texs:
+        # Each piece is tiny; one utftex run for all of them, split back by SEP.
+        joined = SEP.join(n[1] for n in texs)
+        res = subprocess.run([utftex], input=joined, capture_output=True, text=True)
+        parts = res.stdout.rstrip("\n").split(SEP)
+        if res.returncode != 0 or len(parts) != len(texs) or "\n" in res.stdout.strip():
+            # Some piece needs several lines: let utftex draw it all as before.
+            return subprocess.run([utftex], input=src, text=True).returncode
+        for n, p in zip(texs, parts):
+            # a lone space in the source is dropped by utftex too
+            conv[id(n)] = p if n[1] != " " else ""
+    sys.stdout.write(render(tree, conv) + "\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

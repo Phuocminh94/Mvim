@@ -152,7 +152,30 @@ return {
     -- default). Math is compiled with pdflatex + magick. Only $$...$$ and math
     -- environments become images (queries/latex/images.scm drops the inline rule,
     -- snacks stretched inline formula images); render-markdown draws the inline ones.
-    image = {},
+    image = {
+      math = {
+        latex = {
+          -- The default template plus two fixes for formulas read from the Claude
+          -- pane. T5 fontenc (vntex, in texlive-langother) for Vietnamese in
+          -- \text{}. And `\ ` becomes a row break inside matrix-like environments:
+          -- Claude Code's own markdown renderer prints `\\` as `\`, so the rows of
+          -- a pmatrix would otherwise all collapse into one.
+          tpl = [[
+        \documentclass[preview,border=0pt,varwidth,12pt]{standalone}
+        \usepackage[T5]{fontenc}
+        \usepackage{${packages}}
+        \usepackage{xcolor, etoolbox}
+        \newcommand{\snacksrows}[1]{\AtBeginEnvironment{#1}{\def\ {\\}}}
+        \forcsvlist{\snacksrows}{matrix,pmatrix,bmatrix,Bmatrix,vmatrix,Vmatrix,smallmatrix,cases,aligned,gathered,split,array}
+        \begin{document}
+        ${header}
+        { \${font_size} \selectfont
+          \color[HTML]{${color}}
+        ${content}}
+        \end{document}]],
+        },
+      },
+    },
     notifier = {
       timeout = 3000, -- Disappear after 3s
     },
