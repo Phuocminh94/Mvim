@@ -330,7 +330,10 @@ def main():
         for n, p in zip(texs, parts):
             # a lone space in the source is dropped by utftex too
             conv[id(n)] = p if n[1] != " " else ""
-    sys.stdout.write(render(tree, conv) + "\n")
+    out = render(tree, conv)
+    # Factorial then equals (9!=362880): ligature fonts draw "!=" as ≠.
+    out = out.replace("!=", "! = ")
+    sys.stdout.write(out + "\n")
     return 0
 
 
