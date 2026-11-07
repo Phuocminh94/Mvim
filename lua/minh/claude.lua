@@ -461,6 +461,37 @@ local function rerender_markdown(buf)
   refresh_images(buf)
 end
 
+local RERENDER_IDLE_MS = 500
+
+--- Re-render once Claude has printed nothing for RERENDER_IDLE_MS, so math shows
+--- without leaving Terminal mode. While Claude streams, on_lines only restarts
+--- the timer; the render itself (visible lines only) takes about 10 ms.
+local function watch_output(buf)
+  if vim.b[buf].claude_output_watched then
+    return
+  end
+  vim.b[buf].claude_output_watched = true
+  local timer = assert(vim.uv.new_timer())
+  vim.api.nvim_buf_attach(buf, false, {
+    on_lines = function()
+      timer:stop()
+      timer:start(
+        RERENDER_IDLE_MS,
+        0,
+        vim.schedule_wrap(function()
+          if vim.api.nvim_buf_is_valid(buf) then
+            rerender_markdown(buf)
+          end
+        end)
+      )
+    end,
+    on_detach = function()
+      timer:stop()
+      timer:close()
+    end,
+  })
+end
+
 --- Keymaps and options of the pane's terminal buffer. Called on TermOpen and
 --- again after toggle_markdown(): filetype changes run ftplugins, and markdown's
 --- maps [[ ]] (its undo unmaps them), which would clobber the pane's own.
@@ -538,8 +569,9 @@ end
 --- Toggle math rendering in the pane (`m` in its Normal mode): the terminal buffer
 --- pretends to be markdown, so render-markdown draws inline $...$ as unicode and
 --- snacks.image draws $$...$$ blocks. The text is Claude's output, hard-wrapped at
---- the pane width: a formula cut by a wrap renders wrong.
-function M.toggle_markdown()
+--- the pane width: a formula cut by a wrap renders wrong. Acts on the current
+--- buffer (render-markdown's buf_enable does too); `quiet` skips the message.
+function M.toggle_markdown(quiet)
   local buf = vim.api.nvim_get_current_buf()
   if vim.b[buf].claude_markdown then
     vim.b[buf].claude_markdown = false
@@ -558,6 +590,12 @@ function M.toggle_markdown()
   vim.b[buf].claude_markdown = true
   -- Loaded first: render-markdown only attaches on a FileType event it sees.
   pcall(require("lazy").load, { plugins = { "render-markdown.nvim" } })
+  -- snacks.image creates its FileType autocmd on the first BufReadPre; in a
+  -- session that has only opened the pane, no file was read, so nothing would
+  -- attach images to the pane. setup() is idempotent.
+  pcall(function()
+    Snacks.image.setup()
+  end)
   vim.bo[buf].filetype = "markdown"
   vim.wo.spell = false -- the markdown FileType autocmd turns it on
   M.setup_pane(buf)
@@ -565,7 +603,10 @@ function M.toggle_markdown()
     require("render-markdown").buf_enable()
   end)
   refresh_images(buf) -- a second time on: snacks is attached already, so redraw
-  vim.notify("Claude pane: math rendered (m: back to plain text)", vim.log.levels.INFO)
+  watch_output(buf)
+  if not quiet then
+    vim.notify("Claude pane: math rendered (m: back to plain text)", vim.log.levels.INFO)
+  end
 end
 
 --- Newest transcript of a Claude session started in nvim's cwd. Claude Code keeps

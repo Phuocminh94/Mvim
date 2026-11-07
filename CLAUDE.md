@@ -34,6 +34,9 @@ secrets, private paths or personal data here.
   preview etoolbox mathtools xcolor vntex` (the dotfiles installer does both).
 - Formula images are cached in `~/.cache/nvim/snacks/image/`; delete the
   `*.math.*` files after changing the template.
+- Claude pane: math rendering is on from the start (`m` toggles; set
+  `vim.g.claude_math = false` in `local_config.lua` to start off) and redraws 500 ms
+  after Claude stops printing.
 
 ## Conventions
 

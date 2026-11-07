@@ -167,7 +167,19 @@ return {
       group = vim.api.nvim_create_augroup("claudecode_term_esc", { clear = true }),
       callback = function(args)
         if vim.api.nvim_buf_get_name(args.buf):find("claude", 1, true) then
-          require("minh.claude").setup_pane(args.buf)
+          local claude = require("minh.claude")
+          claude.setup_pane(args.buf)
+          -- Math rendering on from the start (`m` still toggles it);
+          -- vim.g.claude_math = false in local_config.lua keeps it off.
+          if vim.g.claude_math ~= false then
+            vim.schedule(function()
+              if vim.api.nvim_buf_is_valid(args.buf) and not vim.b[args.buf].claude_markdown then
+                vim.api.nvim_buf_call(args.buf, function()
+                  claude.toggle_markdown(true)
+                end)
+              end
+            end)
+          end
         end
       end,
     })
