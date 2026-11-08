@@ -35,7 +35,13 @@ return {
     -- blocks (functions, loops, blank lines inside them) arrive as one paste.
     -- A custom definition must keep `format`, otherwise lines are typed one by one.
     local ipython = {
-      command = { "ipython", "--no-autoindent" },
+      -- IPython binds Ctrl-\ to quit, which sends SIGQUIT to itself (core dump);
+      -- in nvim a stray Ctrl-\ (start of <C-\><C-n>) reaches it easily.
+      command = {
+        "ipython",
+        "--no-autoindent",
+        [[--TerminalInteractiveShell.shortcuts={"command": "IPython:shortcuts.quit", "match_keys": ["c-\\"], "new_keys": []}]],
+      },
       format = common.bracketed_paste_python,
       block_dividers = { "# %%", "#%%" }, -- cells for <leader>rb
     }
