@@ -39,7 +39,7 @@ return {
     end
 
     vim.api.nvim_create_autocmd({ "FileType", "BufWritePost" }, {
-      group = vim.api.nvim_create_augroup("OtterAutostart", { clear = true }),
+      group = vim.api.nvim_create_augroup("minh.otter.autostart", { clear = true }),
       pattern = fts,
       callback = function(args)
         activate(args.buf)

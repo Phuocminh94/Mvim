@@ -6,7 +6,7 @@ return {
       output_extension = "md",
     })
 
-    local jupytext_sync = vim.api.nvim_create_augroup("JupytextSync", { clear = true })
+    local jupytext_sync = vim.api.nvim_create_augroup("minh.jupytext.sync", { clear = true })
 
     vim.api.nvim_create_autocmd("BufWritePost", {
       group = jupytext_sync,

@@ -3,8 +3,8 @@
 local function map(mode, lhs, rhs, desc)
   vim.keymap.set(mode, lhs, rhs, { buffer = true, desc = desc })
 end
-map("n", "<leader>db", "<cmd>DBUIToggle<cr>", "Toggle Dadbod UI")
-map("n", "<leader>df", "<cmd>DBUIFindBuffer<cr>", "Find current buffer in DBUI")
+map("n", "<leader>db", "<cmd>DBUIToggle<cr>", "Dadbod: toggle UI")
+map("n", "<leader>df", "<cmd>DBUIFindBuffer<cr>", "Dadbod: find current buffer in DBUI")
 -- DBUIFindBuffer only asks for a database while the buffer has none
 -- (b:dbui_db_key_name); once assigned it keeps it. Forget the assignment so it
 -- asks again. Its question is an inputlist(), whose numbered list noice does
@@ -49,10 +49,10 @@ map("n", "<leader>dr", function()
       end
     end)
   end)
-end, "Reassign buffer to another database")
-map("n", "<leader><Enter>", "<cmd>%DB<cr>", "Execute entire SQL file")
-map("v", "<leader><leader>", ":DB<cr>", "Execute selected SQL")
-map("n", "<leader><leader>", "<cmd>.DB<cr>", "Execute current line")
+end, "Dadbod: reassign buffer to another database")
+map("n", "<leader><Enter>", "<cmd>%DB<cr>", "Dadbod: execute whole file")
+map("v", "<leader><leader>", ":DB<cr>", "Dadbod: execute selection")
+map("n", "<leader><leader>", "<cmd>.DB<cr>", "Dadbod: execute current line")
 
 -- nvim-cmp loads the snippets itself (plugins/nvim-cmp.lua).
 local has_cmp, cmp = pcall(require, "cmp")

@@ -4,19 +4,19 @@ return {
   -- only trigger the load; iron's own mappings (created in setup) then run.
   cmd = { "IronRepl", "IronRestart", "IronFocus", "IronHide" },
   keys = {
-    { "<leader>rt", desc = "Iron: Toggle REPL" },
-    { "<leader><leader>", mode = { "n", "x" }, desc = "Iron: Send line / selection" },
-    { "<leader>rp", desc = "Iron: Send paragraph" },
-    { "<leader>ru", desc = "Iron: Send until cursor" },
-    { "<leader>rb", desc = "Iron: Send # %% cell and move to next" },
-    { "<leader>rr", "<cmd>IronRestart<cr>", desc = "Iron: Restart REPL" },
-    { "<leader>rf", "<cmd>IronFocus<cr>", desc = "Iron: Focus REPL" },
+    { "<leader>rt", desc = "Iron: toggle REPL" },
+    { "<leader><leader>", mode = { "n", "x" }, desc = "Iron: send line / selection" },
+    { "<leader>rp", desc = "Iron: send paragraph" },
+    { "<leader>ru", desc = "Iron: send until cursor" },
+    { "<leader>rb", desc = "Iron: send # %% cell and move to next" },
+    { "<leader>rr", "<cmd>IronRestart<cr>", desc = "Iron: restart REPL" },
+    { "<leader>rf", "<cmd>IronFocus<cr>", desc = "Iron: focus REPL" },
     {
       "<leader>rl",
       function()
         require("iron.core").send_line()
       end,
-      desc = "Iron: Send line (additional)",
+      desc = "Iron: send line (additional)",
     },
     {
       "<leader>rv",
@@ -24,7 +24,7 @@ return {
         require("iron.core").visual_send()
       end,
       mode = "x",
-      desc = "Iron: Send selection (additional)",
+      desc = "Iron: send selection (additional)",
     },
   },
   config = function()

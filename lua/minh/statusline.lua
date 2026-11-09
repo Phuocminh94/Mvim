@@ -179,7 +179,7 @@ M.setup = function()
 
   -- Show / drop the Claude robot as soon as a terminal starts or ends.
   vim.api.nvim_create_autocmd({ "TermOpen", "TermClose" }, {
-    group = vim.api.nvim_create_augroup("minh_statusline_claude", { clear = true }),
+    group = vim.api.nvim_create_augroup("minh.statusline.claude", { clear = true }),
     callback = vim.schedule_wrap(function()
       vim.cmd.redrawstatus()
     end),

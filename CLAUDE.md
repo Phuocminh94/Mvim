@@ -42,3 +42,10 @@ secrets, private paths or personal data here.
 
 - Comments explain why, in English. Packages the config needs are listed in
   the separate dotfiles repo (`packages/linux/*.txt`, `packages/macos/Brewfile`).
+- Autocmd groups: `minh.<area>.<purpose>`, lowercase, dot-separated, mirroring
+  the module (`minh.lsp.attach`, `minh.claude.reload`); per-buffer groups end
+  in `.<bufnr>`.
+- Keymap labels (`desc`): `Area: action` in lowercase after the colon (names
+  and acronyms keep their case: `Iron: toggle REPL`, `Git: next hunk`) for any
+  plugin or feature key; core editing keys (splits, tabs, lines, quickfix) are
+  bare sentence case (`Focus left split`).

@@ -238,7 +238,7 @@ local function start_job(t)
   if t.cmd then
     -- Full-screen programs (lazygit, htop, fzf...) need <Esc> themselves,
     -- so override the global `t <Esc>` mapping for this buffer.
-    bmap("t", "<Esc>", "<Esc>", "Send <Esc> to program")
+    bmap("t", "<Esc>", "<Esc>", "Terminal: send Esc to the program")
   end
 end
 
@@ -354,7 +354,7 @@ function M.pick()
   end)
 end
 
-local group = api.nvim_create_augroup("MinhTerminal", { clear = true })
+local group = api.nvim_create_augroup("minh.terminal", { clear = true })
 
 -- Re-layout visible terminals when the editor size changes.
 api.nvim_create_autocmd("VimResized", {

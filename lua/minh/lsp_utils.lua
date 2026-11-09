@@ -53,8 +53,8 @@ M.capabilities = default_capabilities()
 -- server, including ones enabled by mason-lspconfig with no file of their own.
 -- -----------------------------------------------------------------------------
 
-local hl_group = api.nvim_create_augroup("MinhLspDocumentHighlight", { clear = true })
-local sig_group = api.nvim_create_augroup("MinhLspSignature", { clear = true })
+local hl_group = api.nvim_create_augroup("minh.lsp.document_highlight", { clear = true })
+local sig_group = api.nvim_create_augroup("minh.lsp.signature", { clear = true })
 
 --- Highlight other uses of the symbol under the cursor after 'updatetime'.
 local function highlight_references(client, bufnr)
@@ -122,7 +122,7 @@ M.setup = function()
   -- mason-lspconfig cannot auto-enable it. Requires install.packages("languageserver").
   vim.lsp.enable("r_language_server")
 
-  local group = api.nvim_create_augroup("MinhLspAttach", { clear = true })
+  local group = api.nvim_create_augroup("minh.lsp.attach", { clear = true })
   api.nvim_create_autocmd("LspAttach", {
     group = group,
     callback = function(ev)

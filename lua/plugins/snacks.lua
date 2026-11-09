@@ -86,8 +86,8 @@ return {
           keys = {
             ["<C-d>"] = { "preview_scroll_down", mode = { "i", "n" } },
             ["<C-u>"] = { "preview_scroll_up", mode = { "i", "n" } },
-            ["<C-y>"] = { "yank_path", mode = { "i", "n" }, desc = "Copy File Path" },
-            ["<M-y>"] = { "yank_text", mode = { "i", "n" }, desc = "Copy Notification Text" },
+            ["<C-y>"] = { "yank_path", mode = { "i", "n" }, desc = "Picker: copy file path" },
+            ["<M-y>"] = { "yank_text", mode = { "i", "n" }, desc = "Picker: copy notification text" },
           },
         },
         list = {

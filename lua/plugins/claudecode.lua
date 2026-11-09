@@ -110,7 +110,7 @@ return {
       function()
         require("minh.claude").key("\r")
       end,
-      desc = "Claude: Enter",
+      desc = "Claude: send Enter",
     },
     {
       "<leader>ax",
@@ -140,7 +140,7 @@ return {
 
     -- Show what Claude wrote: reload buffers changed on disk (see minh.claude).
     vim.o.autoread = true
-    local group = vim.api.nvim_create_augroup("claudecode_reload", { clear = true })
+    local group = vim.api.nvim_create_augroup("minh.claude.reload", { clear = true })
     vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold" }, {
       group = group,
       callback = require("minh.claude").reload_changed,
@@ -157,7 +157,7 @@ return {
     -- interrupts) instead of the global `t <Esc>`, <C-\><C-n> still leaves
     -- Terminal mode; q, [[ ]], m, <C-o>, <A-u>/<A-d>.
     vim.api.nvim_create_autocmd("TermOpen", {
-      group = vim.api.nvim_create_augroup("claudecode_term_esc", { clear = true }),
+      group = vim.api.nvim_create_augroup("minh.claude.pane_setup", { clear = true }),
       callback = function(args)
         if vim.api.nvim_buf_get_name(args.buf):find("claude", 1, true) then
           local claude = require("minh.claude")

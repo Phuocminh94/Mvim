@@ -11,7 +11,7 @@ return {
     -- FIX: use `autocmd` for lazy-loading neo-tree instead of directly requiring it,
     -- because `cwd` is not set up properly.
     vim.api.nvim_create_autocmd("BufEnter", {
-      group = vim.api.nvim_create_augroup("Neotree_start_directory", { clear = true }),
+      group = vim.api.nvim_create_augroup("minh.neotree.start_directory", { clear = true }),
       desc = "Start Neo-tree with directory",
       once = true,
       callback = function()
@@ -45,13 +45,13 @@ return {
             local path = node:get_id()
             vim.fn.setreg("+", path, "c")
           end,
-          desc = "Copy Path to Clipboard",
+          desc = "Neo-tree: copy path to clipboard",
         },
         ["O"] = {
           function(state)
             require("lazy.util").open(state.tree:get_node().path, { system = true })
           end,
-          desc = "Open with System Application",
+          desc = "Neo-tree: open with system application",
         },
         ["P"] = { "toggle_preview", config = { use_float = false } },
       },

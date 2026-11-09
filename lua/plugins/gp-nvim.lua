@@ -22,9 +22,9 @@ return {
   -- files, :e), so gp can set up its chat buffer features for it.
   event = { "BufReadPre " .. chat_dir .. "/*" },
   keys = {
-    { "<leader>Ai", "<cmd>GpChatNew vsplit<cr>", desc = "AI Chat New" },
-    { "<leader>ai", "<cmd>GpChatToggle vsplit<cr>", desc = "AI Chat Toggle Panel" },
-    { "<leader>ai", ":<C-u>'<,'>GpChatPaste vsplit<cr>", mode = "x", desc = "AI Chat Paste Selection" },
+    { "<leader>Ai", "<cmd>GpChatNew vsplit<cr>", desc = "Gemini: new chat" },
+    { "<leader>ai", "<cmd>GpChatToggle vsplit<cr>", desc = "Gemini: toggle chat panel" },
+    { "<leader>ai", ":<C-u>'<,'>GpChatPaste vsplit<cr>", mode = "x", desc = "Gemini: paste selection into chat" },
   },
   config = function()
     require("gp").setup({
@@ -70,29 +70,29 @@ return {
     -- directory is more reliable than the filetype (markdown is shared with
     -- every normal .md file).
     vim.api.nvim_create_autocmd({ "BufWinEnter", "BufRead" }, {
-      group = vim.api.nvim_create_augroup("gp_nvim_no_spell", { clear = true }),
+      group = vim.api.nvim_create_augroup("minh.gp.no_spell", { clear = true }),
       pattern = chat_dir .. "/*",
       callback = function(args)
         vim.opt_local.spell = false
         vim.keymap.set("n", "<leader>ag", function()
           vim.cmd("normal! G")
           vim.cmd.startinsert({ bang = true })
-        end, { buffer = args.buf, desc = "AI Chat: go to prompt" })
+        end, { buffer = args.buf, desc = "Gemini: go to prompt" })
         local function map(lhs, prefix, backward, desc)
           vim.keymap.set("n", lhs, function()
             jump_to(prefix, backward)
           end, { buffer = args.buf, desc = desc })
         end
-        map("[a", USER_PREFIX, true, "AI Chat: previous question")
-        map("]a", USER_PREFIX, false, "AI Chat: next question")
-        map("[A", ASSISTANT_PREFIX, true, "AI Chat: previous answer")
-        map("]A", ASSISTANT_PREFIX, false, "AI Chat: next answer")
+        map("[a", USER_PREFIX, true, "Gemini: previous question")
+        map("]a", USER_PREFIX, false, "Gemini: next question")
+        map("[A", ASSISTANT_PREFIX, true, "Gemini: previous answer")
+        map("]A", ASSISTANT_PREFIX, false, "Gemini: next answer")
       end,
     })
 
     -- The cursor no longer follows the answer, so say when it is complete.
     vim.api.nvim_create_autocmd("User", {
-      group = vim.api.nvim_create_augroup("gp_nvim_done", { clear = true }),
+      group = vim.api.nvim_create_augroup("minh.gp.done", { clear = true }),
       pattern = "GpDone",
       callback = function()
         vim.notify("Gemini finished. <leader>ag jumps to the prompt", vim.log.levels.INFO)

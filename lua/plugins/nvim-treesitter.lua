@@ -33,7 +33,7 @@ return {
     vim.treesitter.language.register("markdown", "rmd")
 
     vim.api.nvim_create_autocmd("FileType", {
-      group = vim.api.nvim_create_augroup("user_treesitter", { clear = true }),
+      group = vim.api.nvim_create_augroup("minh.treesitter", { clear = true }),
       callback = function(args)
         local buf = args.buf
 

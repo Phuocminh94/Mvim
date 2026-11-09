@@ -223,7 +223,7 @@ local function prompt(title, on_submit, allow_empty)
     close(false)
   end)
 
-  local group = vim.api.nvim_create_augroup("claude_prompt_" .. buf, { clear = true })
+  local group = vim.api.nvim_create_augroup("minh.claude.prompt." .. buf, { clear = true })
   vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, { group = group, buffer = buf, callback = resize })
   -- Clicking or jumping to another window abandons the prompt.
   vim.api.nvim_create_autocmd("WinLeave", {
@@ -456,7 +456,7 @@ end
 --- again after toggle_markdown(): filetype changes run ftplugins, and markdown's
 --- maps [[ ]] (its undo unmaps them), which would clobber the pane's own.
 function M.setup_pane(buf)
-  vim.keymap.set("t", "<Esc>", "<Esc>", { buffer = buf, desc = "Send <Esc> to Claude" })
+  vim.keymap.set("t", "<Esc>", "<Esc>", { buffer = buf, desc = "Claude: send Esc" })
   -- The whole conversation lives in the scrollback: keep a long session.
   vim.bo[buf].scrollback = 100000
   -- <A-u>/<A-d> scroll half a page, only inside the pane (a hidden float is
@@ -510,7 +510,7 @@ function M.setup_pane(buf)
   end, { buffer = buf, desc = "Claude: full tool output here, else <C-o> to Claude" })
   -- With math rendering on, draw what Claude printed meanwhile when you stop
   -- typing (Terminal -> Normal mode) or come back to the pane.
-  local group = vim.api.nvim_create_augroup("claude_pane_markdown." .. buf, { clear = true })
+  local group = vim.api.nvim_create_augroup("minh.claude.pane_markdown." .. buf, { clear = true })
   vim.api.nvim_create_autocmd("ModeChanged", {
     group = group,
     buffer = buf,
@@ -896,12 +896,12 @@ function M.commands()
   render()
   vim.bo[buf].filetype = "sh"
   vim.cmd("tab sbuffer " .. buf)
-  vim.keymap.set("n", "q", "<cmd>bwipeout<cr>", { buffer = buf, desc = "Close" })
+  vim.keymap.set("n", "q", "<cmd>bwipeout<cr>", { buffer = buf, desc = "Claude: close the commands list" })
   vim.keymap.set("n", "r", function()
     newest_first = not newest_first
     render()
     vim.api.nvim_win_set_cursor(0, { 1, 0 })
-  end, { buffer = buf, desc = "Reverse order (newest/oldest first)" })
+  end, { buffer = buf, desc = "Claude: reverse the list order" })
   vim.notify(("Claude: %d tool calls (%s first) · r reverse · q close"):format(#calls, "newest"))
 end
 

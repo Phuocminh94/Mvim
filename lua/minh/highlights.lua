@@ -97,7 +97,7 @@ end
 
 function M.setup()
   api.nvim_create_autocmd("ColorScheme", {
-    group = api.nvim_create_augroup("MinhHighlights", { clear = true }),
+    group = api.nvim_create_augroup("minh.highlights", { clear = true }),
     callback = M.apply,
   })
 end

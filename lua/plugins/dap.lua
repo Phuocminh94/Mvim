@@ -19,42 +19,42 @@ return {
         function()
           require("dap").toggle_breakpoint()
         end,
-        desc = "DAP: Toggle Breakpoint",
+        desc = "DAP: toggle breakpoint",
       },
       {
         "<leader>dc",
         function()
           require("dap").continue()
         end,
-        desc = "DAP: Continue / Start",
+        desc = "DAP: continue / start",
       },
       {
         "<leader>di",
         function()
           require("dap").step_into()
         end,
-        desc = "DAP: Step Into",
+        desc = "DAP: step into",
       },
       {
         "<leader>do",
         function()
           require("dap").step_over()
         end,
-        desc = "DAP: Step Over",
+        desc = "DAP: step over",
       },
       {
         "<leader>du",
         function()
           require("dap").step_out()
         end,
-        desc = "DAP: Step Out",
+        desc = "DAP: step out",
       },
       {
         "<leader>ds",
         function()
           require("minh.dap").step_mode()
         end,
-        desc = "DAP: Step mode (n i o c; other key exits)",
+        desc = "DAP: step mode (n i o c; other key exits)",
       },
       {
         "<leader>dB",
@@ -65,28 +65,28 @@ return {
             end
           end)
         end,
-        desc = "DAP: Conditional Breakpoint",
+        desc = "DAP: conditional breakpoint",
       },
       {
         "<leader>dC",
         function()
           require("dap").run_to_cursor()
         end,
-        desc = "DAP: Run to Cursor",
+        desc = "DAP: run to cursor",
       },
       {
         "<leader>dR",
         function()
           require("dap").restart()
         end,
-        desc = "DAP: Restart Session",
+        desc = "DAP: restart session",
       },
       {
         "<leader>dl",
         function()
           require("dap").run_last()
         end,
-        desc = "DAP: Run Last",
+        desc = "DAP: run last",
       },
       {
         "<leader>de",
@@ -94,35 +94,35 @@ return {
           require("dapui").eval(nil, { enter = true })
         end,
         mode = { "n", "x" },
-        desc = "DAP: Eval expression under cursor / selection",
+        desc = "DAP: eval expression under cursor / selection",
       },
       {
         "<leader>dw",
         function()
           require("minh.dap").watch()
         end,
-        desc = "DAP: Watch variable under cursor (any frame if in the debugged file)",
+        desc = "DAP: watch variable under cursor (any frame if in the debugged file)",
       },
       {
         "<leader>dr",
         function()
           require("minh.dap").focus_repl()
         end,
-        desc = "DAP: Go to REPL",
+        desc = "DAP: go to REPL",
       },
       {
         "<leader>dt",
         function()
           require("dapui").toggle()
         end,
-        desc = "DAP: Toggle UI",
+        desc = "DAP: toggle UI",
       },
       {
         "<leader>dx",
         function()
           require("dap").terminate()
         end,
-        desc = "DAP: Terminate Session",
+        desc = "DAP: terminate session",
       },
     },
     config = function()
@@ -183,7 +183,7 @@ return {
       -- either (this runs after the global `wincmd =` in minh.autocmd).
       local resetting = false
       vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
-        group = vim.api.nvim_create_augroup("dap_ui_resize", { clear = true }),
+        group = vim.api.nvim_create_augroup("minh.dap.ui_resize", { clear = true }),
         callback = function()
           if resetting then
             return
@@ -201,7 +201,7 @@ return {
         end,
       })
 
-      local group = vim.api.nvim_create_augroup("dap_wrap", { clear = true })
+      local group = vim.api.nvim_create_augroup("minh.dap.wrap", { clear = true })
       vim.api.nvim_create_autocmd({ "FileType", "BufWinEnter" }, { group = group, callback = wrap_dap_windows })
 
       -- Open the UI when a session starts. It is not closed automatically on

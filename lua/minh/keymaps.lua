@@ -15,7 +15,7 @@ map("n", "<Space>", "<Nop>", "Ignore Space")
 -------------------------------------------------------------------------------
 map("i", "jk", "<Esc>", "Exit insert mode")
 -- map("n", "<leader>nh", "<cmd>nohl<CR>", "Clear search highlights")
-map("n", "<leader>nh", "<cmd>Noice dismiss<CR>", "Noice dismiss")
+map("n", "<leader>nh", "<cmd>Noice dismiss<CR>", "Noice: dismiss messages")
 
 -- Move by screen line through wrapped text, but keep counts (5j, 10k) linewise
 map({ "n", "x" }, "j", "v:count == 0 ? 'gj' : 'j'", nil, { expr = true })
@@ -81,71 +81,71 @@ map("n", "<leader>tN", function()
       vim.cmd("tcd " .. path)
     end
   end)
-end, "Open new tab with specific CWD")
+end, "Open new tab with a chosen cwd")
 
 -------------------------------------------------------------------------------
 -- PLUGINS & PICKERS
 -------------------------------------------------------------------------------
 -- Neo-tree
-map("n", "<leader>e", "<cmd>Neotree toggle<CR>", "Toggle File Explorer")
+map("n", "<leader>e", "<cmd>Neotree toggle<CR>", "Neo-tree: toggle file explorer")
 
 -- Quickfix list
 map("n", "]q", "<cmd>cnext<CR>", "Next quickfix item")
-map("n", "[q", "<cmd>cprev<CR>", "Prev quickfix item")
+map("n", "[q", "<cmd>cprev<CR>", "Previous quickfix item")
 
 -- Sort (EasyAlign `ga` lives in plugins/vim-easy-align.lua)
 map("x", "<leader>s", ":sort /^\\s*/<CR>", "Sort lines")
 
 -- Utilities
-map("n", "<leader>md", "<cmd>MarkdownPreviewToggle<CR>", "Toggle Markdown Preview")
+map("n", "<leader>md", "<cmd>MarkdownPreviewToggle<CR>", "Markdown: toggle browser preview")
 -- <C-/> conflicts with Tmux. A count picks the terminal number: 2<A-/>
 map({ "n", "t" }, "<A-/>", function()
   local opts = vim.fn.has("win32") == 1 and { cmd = "powershell" } or {}
   require("minh.terminal").toggle(nil, opts)
-end, "Toggle terminal")
+end, "Terminal: toggle")
 map("n", "<leader>ft", function()
   require("minh.terminal").pick()
-end, "Find terminals")
-map("n", "<leader>p", "<cmd>PasteImage<CR>", "Paste Image (img-clip)")
+end, "Terminal: pick a running one")
+map("n", "<leader>p", "<cmd>PasteImage<CR>", "Image: paste from clipboard")
 
 -------------------------------------------------------------------------------
 -- SNACKS PICKER
 -------------------------------------------------------------------------------
 map("n", "<leader>ff", function()
   Snacks.picker.files({ layout = "sidebar" })
-end, "Find Files")
+end, "Find: files")
 
 map("n", "<leader>fo", function()
   Snacks.picker.recent({ layout = "vscode", preview = false })
-end, "Recent Files")
+end, "Find: recent files")
 
 map("n", "<leader>fg", function()
   Snacks.picker.grep()
-end, "Grep")
+end, "Find: grep text")
 
 map("n", "<leader>fh", function()
   Snacks.picker.help({ layout = "ivy" })
-end, "Help Tags")
+end, "Find: help tags")
 
 map("n", "<leader>fk", function()
   Snacks.picker.keymaps({ layout = "ivy" })
-end, "Keymaps")
+end, "Find: keymaps")
 
 map("n", "<leader>fb", function()
   Snacks.picker.buffers({ layout = "vscode", preview = false })
-end, "Buffers")
+end, "Find: buffers")
 
 map("n", "<leader>f/", function()
   Snacks.picker.lines()
-end, "Grep Current Buffer")
+end, "Find: lines in buffer")
 
 map("n", "<leader>fc", function()
   Snacks.picker.files({ cwd = vim.fn.stdpath("config"), layout = "ivy" })
-end, "Find Configs")
+end, "Find: config files")
 
 map("n", "<leader>fp", function()
   Snacks.picker.projects({ layout = "vscode", preview = false })
-end, "Find Projects")
+end, "Find: projects")
 
 map("n", "<leader>fn", function()
   if vim.g.note_path == "" then
@@ -153,11 +153,11 @@ map("n", "<leader>fn", function()
     return
   end
   Snacks.picker.files({ cwd = vim.g.note_path })
-end, "Find Note")
+end, "Find: notes")
 
 map("n", "<leader>fN", function()
   Snacks.picker.notifications()
-end, "Notification History")
+end, "Find: notification history")
 
 map("n", "<leader>fs", function()
   vim.wo.spell = true
@@ -186,13 +186,13 @@ map("n", "<leader>fs", function()
     end,
     -- preview = "none",
   })
-end, "Spelling errors (buffer)")
+end, "Find: spelling errors (buffer)")
 
 -------------------------------------------------------------------------------
 -- LSP & DIAGNOSTICS (Autocmd controlled)
 -------------------------------------------------------------------------------
 vim.api.nvim_create_autocmd("LspAttach", {
-  group = vim.api.nvim_create_augroup("UserLspConfig", { clear = true }),
+  group = vim.api.nvim_create_augroup("minh.lsp.keymaps", { clear = true }),
   callback = function(ev)
     -- Buffer-local helper for LSP keys
     local function lsp_map(mode, lhs, rhs, desc)
@@ -200,50 +200,50 @@ vim.api.nvim_create_autocmd("LspAttach", {
     end
 
     -- Diagnostics & Basic LSP
-    lsp_map("n", "gl", vim.diagnostic.open_float, "Line diagnostics")
-    lsp_map("n", "K", vim.lsp.buf.hover, "Hover docs")
-    lsp_map("n", "gs", vim.lsp.buf.signature_help, "Signature help")
-    lsp_map("n", "<leader>rn", vim.lsp.buf.rename, "Rename symbol")
-    lsp_map("n", "<leader>ca", vim.lsp.buf.code_action, "Code action")
+    lsp_map("n", "gl", vim.diagnostic.open_float, "LSP: line diagnostics")
+    lsp_map("n", "K", vim.lsp.buf.hover, "LSP: hover docs")
+    lsp_map("n", "gs", vim.lsp.buf.signature_help, "LSP: signature help")
+    lsp_map("n", "<leader>rn", vim.lsp.buf.rename, "LSP: rename symbol")
+    lsp_map("n", "<leader>ca", vim.lsp.buf.code_action, "LSP: code action")
 
     -- Navigation via Native LSP (Standard Jumps)
     lsp_map("n", "gd", function()
       Snacks.picker.lsp_definitions()
-    end, "Goto Definition")
+    end, "LSP: go to definition")
 
     lsp_map("n", "gD", function()
       Snacks.picker.lsp_declarations()
-    end, "Goto Declaration")
+    end, "LSP: go to declaration")
 
     lsp_map("n", "gri", function()
       Snacks.picker.lsp_implementations()
-    end, "Goto Implementation")
+    end, "LSP: go to implementation")
 
     -- nowait: Neovim 0.11+ has global gra/grn/grr/gri..., which would make a
     -- plain `gr` wait for 'timeoutlen' before firing.
     vim.keymap.set("n", "gr", function()
       Snacks.picker.lsp_references()
-    end, { buffer = ev.buf, silent = true, nowait = true, desc = "Find references" })
+    end, { buffer = ev.buf, silent = true, nowait = true, desc = "LSP: references" })
 
     lsp_map("n", "gy", function()
       Snacks.picker.lsp_type_definitions()
-    end, "Type Definition")
+    end, "LSP: go to type definition")
 
     -- Not gci/gco: `gc` is the comment operator (gcip) and gco adds a comment below.
     lsp_map("n", "<leader>ci", function()
       Snacks.picker.lsp_incoming_calls()
-    end, "Calls Incoming")
+    end, "LSP: incoming calls")
 
     lsp_map("n", "<leader>co", function()
       Snacks.picker.lsp_outgoing_calls()
-    end, "Calls Outgoing")
+    end, "LSP: outgoing calls")
 
     lsp_map("n", "<leader>ss", function()
       Snacks.picker.lsp_symbols()
-    end, "LSP Symbols")
+    end, "LSP: symbols")
     lsp_map("n", "<leader>sd", function()
       Snacks.picker.diagnostics()
-    end, "LSP Diagnostics")
+    end, "LSP: diagnostics list")
   end,
 })
 
@@ -251,14 +251,14 @@ vim.api.nvim_create_autocmd("LspAttach", {
 -- (see formatters_by_ft in plugins/conform.lua).
 map({ "n", "x" }, "<leader>fm", function()
   require("conform").format({ lsp_format = "fallback", async = false })
-end, "Format file/selection")
+end, "Format: file or selection")
 
 -- Toggle diagnostics (signs, virtual text and underline together)
 map("n", "<leader>ds", function()
   local enabled = not vim.diagnostic.is_enabled()
   vim.diagnostic.enable(enabled)
   vim.notify("Diagnostics: " .. (enabled and "ON" or "OFF"), vim.log.levels.INFO)
-end, "Toggle diagnostics")
+end, "Diagnostics: toggle")
 
 -------------------------------------------------------------------------------
 -- GIT
@@ -267,21 +267,21 @@ end, "Toggle diagnostics")
 -- Gitsigns
 map("n", "]h", function()
   require("gitsigns").nav_hunk("next")
-end, "Next git hunk")
+end, "Git: next hunk")
 map("n", "[h", function()
   require("gitsigns").nav_hunk("prev")
-end, "Prev git hunk")
+end, "Git: previous hunk")
 map("n", "<leader>hr", function()
   require("gitsigns").reset_hunk()
-end, "Reset git hunk")
+end, "Git: reset hunk")
 map("n", "<leader>hp", function()
   require("gitsigns").preview_hunk()
-end, "Preview git hunk")
+end, "Git: preview hunk")
 map("n", "<leader>hs", function()
   require("gitsigns").stage_hunk()
-end, "Stage git hunk")
-map("n", "<leader>hq", ":Gitsigns setqflist<CR>", "Quickfix list hunk (buffer)")
-map("n", "<leader>hQ", ":Gitsigns setqflist all<CR>", "Quickfix list hunk (projects)")
+end, "Git: stage hunk")
+map("n", "<leader>hq", ":Gitsigns setqflist<CR>", "Git: hunks to quickfix (buffer)")
+map("n", "<leader>hQ", ":Gitsigns setqflist all<CR>", "Git: hunks to quickfix (all files)")
 
 -- Lazygit: one instance per cwd; minh.terminal closes it when lazygit exits
 map("n", "<leader>lg", function()
@@ -295,4 +295,4 @@ map("n", "<leader>lg", function()
     width = 0.9,
     height = 0.9,
   })
-end, "Lazygit")
+end, "Git: lazygit")

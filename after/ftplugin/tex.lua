@@ -5,4 +5,4 @@ vim.opt_local.colorcolumn = "+1"
 
 require("minh.wrap").attach()
 
-vim.keymap.set("n", "<leader>tc", require("minh.utils").latex_toc, { buffer = true, desc = "LaTeX TOC" })
+vim.keymap.set("n", "<leader>tc", require("minh.utils").latex_toc, { buffer = true, desc = "LaTeX: table of contents" })

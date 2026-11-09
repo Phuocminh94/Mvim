@@ -18,4 +18,4 @@ vim.keymap.set("n", "<leader>tc", function()
   else
     utils.markdown_toc("Table of Content")
   end
-end, { buffer = true, desc = "Table of Content" })
+end, { buffer = true, desc = "Markdown: table of contents" })

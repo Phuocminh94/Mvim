@@ -1,7 +1,7 @@
 -- AUTOCMDS (Automation & Event Hooks)
 -- Reference: https://github.com/hieulw/nvimrc/blob/lua-config/lua/hieulw/autocmds.lua
 
-local custom = vim.api.nvim_create_augroup("MyAutocmd", { clear = true })
+local custom = vim.api.nvim_create_augroup("minh.autocmd", { clear = true })
 local autocmd = vim.api.nvim_create_autocmd
 
 -- 1. Highlight on yank

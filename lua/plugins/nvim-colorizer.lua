@@ -4,6 +4,6 @@ return {
   lazy = false,
   config = function()
     require("colorizer").setup()
-    vim.keymap.set("n", "<A-c>", "<cmd>ColorizerToggle<CR>", { desc = "Toggle Colorizer" })
+    vim.keymap.set("n", "<A-c>", "<cmd>ColorizerToggle<CR>", { desc = "Colorizer: toggle" })
   end,
 }
