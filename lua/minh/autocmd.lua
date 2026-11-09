@@ -212,3 +212,20 @@ autocmd("FileType", {
     vim.bo[args.buf].syntax = "ON" -- Re-enable VimTeX syntax
   end,
 })
+
+-- 14. Hide gutter signs in two-pane diffs: read them from the background colours.
+-- Gitsigns compares against its own base (in a fugitive:// pane, the parent
+-- commit), so its signs there contradict the diff.
+autocmd("OptionSet", {
+  group = custom,
+  pattern = "diff",
+  callback = function()
+    if vim.v.option_new then
+      vim.w.signcolumn_before_diff = vim.wo.signcolumn
+      vim.wo.signcolumn = "no"
+    elseif vim.w.signcolumn_before_diff then
+      vim.wo.signcolumn = vim.w.signcolumn_before_diff
+      vim.w.signcolumn_before_diff = nil
+    end
+  end,
+})
