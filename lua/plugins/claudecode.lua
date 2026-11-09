@@ -119,13 +119,6 @@ return {
       end,
       desc = "Claude: interrupt (Esc)",
     },
-    {
-      "<leader>aj",
-      function()
-        require("minh.claude").scroll_mode()
-      end,
-      desc = "Claude: browse transcript ([ ] j k d u g G)",
-    },
   },
   config = function()
     require("claudecode").setup({

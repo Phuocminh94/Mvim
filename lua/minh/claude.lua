@@ -19,7 +19,7 @@
 --   toggle_markdown() render math in the pane (pretend markdown) or back to text
 --   commands()   every tool call of the session in a tab (sh): Bash commands
 --                verbatim with description and first output lines, to learn from
---   scroll_mode() browse the transcript: [ ] prompts, j k d u g G; other key exits
+--   show_tool_output() <C-o> on a collapsed tool call in the pane: its full output
 --
 -- The pane must already be running (<leader>ac); apart from toggle(), this
 -- never focuses it.
@@ -383,46 +383,6 @@ function M.key(bytes)
   end
 end
 
--- Transcript view (Ctrl+O) of Claude Code: j/k, Ctrl+d/Ctrl+u, g/G scroll and
--- { / } jump to the previous / next prompt of yours (its answer is just below).
-local CTRL_O, CTRL_D, CTRL_U = "\15", "\4", "\21"
-local TRANSCRIPT_KEYS = {
-  ["["] = "{",
-  ["]"] = "}",
-  j = "j",
-  k = "k",
-  d = CTRL_D,
-  u = CTRL_U,
-  g = "g",
-  G = "G",
-}
-
---- Browse the conversation in Claude's transcript view without focusing the pane:
---- [ ] previous/next prompt (and the answer under it), j k lines, d u half page,
---- g G top/bottom. Any other key (Esc, q...) closes the transcript and leaves.
---- Ctrl+O toggles, so this assumes the pane is not already in transcript view.
-function M.scroll_mode()
-  if not pane() then
-    return
-  end
-  M.key(CTRL_O)
-  while true do
-    vim.api.nvim_echo({ { "-- Claude transcript: [ ] prompt  j k  d u  g G  (other key exits) --", "ModeMsg" } }, false, {})
-    vim.cmd.redraw()
-    local key = vim.fn.getcharstr()
-    local bytes = TRANSCRIPT_KEYS[key]
-    -- Focus changes and mouse events are special keys: ignore, don't exit.
-    if not bytes and key:byte(1) ~= 0x80 then
-      break
-    end
-    if bytes then
-      M.key(bytes)
-    end
-  end
-  M.key("q")
-  vim.api.nvim_echo({ { "" } }, false, {})
-end
-
 --- snacks.image keeps its own list of the buffer's images (closing them alone
 --- does not stick: it shows them again on the next cursor move). Its refresh
 --- finds the formulas from treesitter, so on plain text it removes them all, and
@@ -540,11 +500,14 @@ function M.setup_pane(buf)
   vim.keymap.set("n", "m", function()
     M.toggle_markdown()
   end, { buffer = buf, desc = "Claude: toggle math rendering" })
-  -- In Normal mode <C-o> would jump back to the previous buffer; send it to
-  -- Claude instead (expands the "ctrl+o to expand" tool output).
+  -- In Normal mode <C-o> would jump back to the previous buffer. On a collapsed
+  -- tool call it shows the call's full output (show_tool_output); anywhere else
+  -- it goes to Claude (toggles its transcript view).
   vim.keymap.set("n", "<C-o>", function()
-    M.key("\15")
-  end, { buffer = buf, desc = "Send <C-o> to Claude (expand tool output)" })
+    if not M.show_tool_output() then
+      M.key("\15")
+    end
+  end, { buffer = buf, desc = "Claude: full tool output here, else <C-o> to Claude" })
   -- With math rendering on, draw what Claude printed meanwhile when you stop
   -- typing (Terminal -> Normal mode) or come back to the pane.
   local group = vim.api.nvim_create_augroup("claude_pane_markdown." .. buf, { clear = true })
@@ -562,6 +525,17 @@ function M.setup_pane(buf)
     buffer = buf,
     callback = function()
       rerender_markdown(buf)
+    end,
+  })
+  -- Safety net for <C-o> above: if that map is ever missing, <C-o> jumps back
+  -- to the working buffer. An empty jumplist leaves it nothing to jump to.
+  -- Cause not confirmed (a bare nvim_open_win float starts with an empty
+  -- jumplist); if it still happens, check `:verbose nmap <buffer> <C-o>`.
+  vim.api.nvim_create_autocmd({ "BufWinEnter", "WinEnter" }, {
+    group = group,
+    buffer = buf,
+    callback = function()
+      vim.cmd("clearjumps")
     end,
   })
 end
@@ -611,16 +585,25 @@ end
 
 --- Newest transcript of a Claude session started in nvim's cwd. Claude Code keeps
 --- them as ~/.claude/projects/<cwd, non-alphanumerics as "-">/<session>.jsonl.
-local function transcript_file()
+local function transcript_files()
   local dir = vim.fs.joinpath(vim.env.HOME, ".claude", "projects", (vim.fn.getcwd():gsub("[^%w]", "-")))
-  local newest, newest_mtime = nil, -1
+  local files = {}
   for _, file in ipairs(vim.fn.glob(dir .. "/*.jsonl", false, true)) do
     local stat = vim.uv.fs_stat(file)
-    if stat and stat.mtime.sec > newest_mtime then
-      newest, newest_mtime = file, stat.mtime.sec
+    if stat then
+      table.insert(files, { path = file, mtime = stat.mtime.sec })
     end
   end
-  return newest
+  table.sort(files, function(a, b)
+    return a.mtime > b.mtime
+  end)
+  return vim.tbl_map(function(f)
+    return f.path
+  end, files)
+end
+
+local function transcript_file()
+  return transcript_files()[1]
 end
 
 local OUTPUT_LINES = 5 -- output lines kept under each command
@@ -691,6 +674,188 @@ local function call_lines(call)
     end
   end
   return lines
+end
+
+-- A tool call in the pane: "● Bash(command…" (the args wrapped over a few
+-- lines), "⎿ output", "… +N lines (ctrl+o to expand)". With the default renderer
+-- those lines sit in the scrollback and Claude never redraws them, so Ctrl+O
+-- there only reprints the transcript at the bottom. show_tool_output() reads
+-- the full output from the session transcript instead.
+local TOOL_BULLETS = { "●", "⏺" }
+local RESULT_MARKS = { "⎿", "└" }
+local EXPAND_HINT = "ctrl+o to expand"
+
+local function starts_with_any(s, prefixes)
+  for _, p in ipairs(prefixes) do
+    if vim.startswith(s, p) then
+      return p
+    end
+  end
+end
+
+--- "● Name(args" -> name, rest of the line; nil for any other line.
+local function tool_header(line)
+  local s = vim.trim(line)
+  local bullet = starts_with_any(s, TOOL_BULLETS)
+  if bullet then
+    return s:sub(#bullet + 1):match("^%s*([%w_]+)%((.*)$")
+  end
+end
+
+--- A line that starts another message: your prompt, or any "●" line.
+local function message_start(line)
+  local s = vim.trim(line)
+  return vim.startswith(s, "❯") or starts_with_any(s, TOOL_BULLETS) ~= nil
+end
+
+--- The collapsed tool call around the cursor: { name, args, output } with the
+--- args and first output lines as the pane shows them (wrapped, cut with "…"),
+--- or nil when the cursor is not on a call that still has its "ctrl+o to
+--- expand" line.
+local function collapsed_call()
+  local row = vim.api.nvim_win_get_cursor(0)[1]
+  local header
+  for n = row, math.max(1, row - 60), -1 do
+    local line = vim.fn.getline(n)
+    if tool_header(line) then
+      header = n
+      break
+    elseif message_start(line) then
+      return nil
+    end
+  end
+  if not header then
+    return nil
+  end
+  local name, args = tool_header(vim.fn.getline(header))
+  local hint, in_args, output = nil, true, {}
+  for n = header + 1, header + 60 do
+    local line = vim.fn.getline(n)
+    if n > vim.fn.line("$") or message_start(line) then
+      break
+    end
+    if line:find(EXPAND_HINT, 1, true) then
+      hint = n
+      break
+    end
+    local s = vim.trim(line)
+    local mark = starts_with_any(s, RESULT_MARKS)
+    if mark then
+      in_args, s = false, s:sub(#mark + 1)
+    end
+    if in_args then
+      args = args .. line
+    elseif s ~= "" then
+      table.insert(output, s)
+    end
+  end
+  -- The hint plus the line or two under it ("Allowed by auto mode").
+  if not hint or row > hint + 2 then
+    return nil
+  end
+  return { name = name, args = args, output = output }
+end
+
+--- Text without whitespace or "…": the pane wraps long args (sometimes inside a
+--- word) and cuts them, so only the characters themselves can be compared.
+local function squeeze(s)
+  return (s:gsub("…", ""):gsub("%s+", ""))
+end
+
+--- The tool call's input as one string to search in (Bash: its command).
+local function input_text(call)
+  if call.name == "Bash" then
+    return call.input.command or ""
+  end
+  local parts = {}
+  for _, v in pairs(call.input) do
+    if type(v) == "string" then
+      table.insert(parts, v)
+    end
+  end
+  return table.concat(parts, " ")
+end
+
+--- One call's full output in a float over the pane; q or <Esc> closes it.
+local function show_output(call)
+  local lines = { "# " .. (call.input.description or call.name) .. (call.error and "  [error]" or "") }
+  if call.name == "Bash" then
+    vim.list_extend(lines, vim.split(call.input.command or "", "\n", { plain = true }))
+  else
+    table.insert(lines, "# " .. call_summary(call))
+  end
+  table.insert(lines, "")
+  vim.list_extend(lines, vim.split((call.output:gsub("\r", "")), "\n", { plain = true }))
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.bo[buf].bufhidden = "wipe"
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.bo[buf].modifiable = false
+  local width = math.floor(vim.o.columns * 0.8)
+  local height = math.max(1, math.min(#lines, math.floor(vim.o.lines * 0.8)))
+  vim.api.nvim_open_win(buf, true, {
+    relative = "editor",
+    width = width,
+    height = height,
+    row = math.floor((vim.o.lines - height) / 2),
+    col = math.floor((vim.o.columns - width) / 2),
+    border = "rounded",
+    title = " " .. call.name .. " output (q closes) ",
+    title_pos = "center",
+    zindex = 60, -- above the pane's own float
+  })
+  for _, lhs in ipairs({ "q", "<Esc>" }) do
+    vim.keymap.set("n", lhs, "<cmd>close<cr>", { buffer = buf, nowait = true })
+  end
+end
+
+--- <C-o> in the pane's Normal mode: on a collapsed tool call, show its full
+--- output and return true; anywhere else return false (the caller sends <C-o>
+--- to Claude). Similar commands share long prefixes (every psql call starts
+--- alike), so a call must contain all of the shown args, and among those the
+--- newest whose output also holds the shown first output lines wins.
+function M.show_tool_output()
+  local shown = collapsed_call()
+  if not shown then
+    return false
+  end
+  local needle = squeeze(shown.args):gsub("%)$", "")
+  if needle == "" then
+    return false
+  end
+  -- Newest transcripts first: another Claude session in the same directory
+  -- (a second nvim, herdr) may have written more recently than this pane's.
+  local fallback
+  for _, file in ipairs(vim.list_slice(transcript_files(), 1, 3)) do
+    local ok, calls = pcall(tool_calls, file)
+    for n = ok and #calls or 0, 1, -1 do
+      local call = calls[n]
+      -- The pane shows some tools under other names (Grep as "Search"), so
+      -- only Bash is matched by name.
+      local same_tool = call.name == shown.name or shown.name ~= "Bash"
+      if same_tool and call.output and squeeze(input_text(call)):find(needle, 1, true) then
+        local out = squeeze(call.output)
+        local all_shown = true
+        for _, line in ipairs(shown.output) do
+          if not out:find(squeeze(line), 1, true) then
+            all_shown = false
+            break
+          end
+        end
+        if all_shown then
+          show_output(call)
+          return true
+        end
+        fallback = fallback or call
+      end
+    end
+  end
+  if fallback then
+    show_output(fallback)
+    vim.notify("Claude: no call with this exact output; showing the newest with these args", vim.log.levels.WARN)
+  else
+    vim.notify("Claude: this call is not in the session transcript", vim.log.levels.WARN)
+  end
+  return true
 end
 
 --- Every tool call of the current session in a buffer (filetype sh), to read and

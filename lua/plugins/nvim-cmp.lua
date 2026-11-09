@@ -75,7 +75,7 @@ return {
         ["<C-j>"] = cmp.mapping.select_next_item(), -- next suggestion
         ["<C-b>"] = scroll(-4, "\x02"), -- \x02 = <C-b>
         ["<C-f>"] = scroll(4, "\x06"), -- \x06 = <C-f>
-        ["<C-Space>"] = cmp.mapping.complete(), -- show completion suggestions
+        ["<C-l>"] = cmp.mapping.complete(), -- show completion suggestions (<C-Space> is the herdr/tmux prefix)
         ["<C-s>"] = cmp.mapping(function(fallback)
           if cmp.visible() then
             cmp.confirm({ select = true })
