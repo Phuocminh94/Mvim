@@ -56,13 +56,15 @@ return {
   end,
   keys = {
     { "<leader>ji", init_kernel, desc = "Molten: start kernel" },
-    { "<leader>jl", "<cmd>MoltenEvaluateLine<cr>", desc = "Molten: run line" },
+    { "<leader>jj", "<cmd>MoltenEvaluateLine<cr>", desc = "Molten: run line" },
     { "<leader>jj", ":<C-u>MoltenEvaluateVisual<cr>gv<Esc>", mode = "x", desc = "Molten: run selection" },
     { "<leader>jb", run_block, desc = "Molten: run # %% cell" },
     { "<leader>jc", "<cmd>MoltenReevaluateCell<cr>", desc = "Molten: rerun cell" },
     { "<leader>jo", "<cmd>noautocmd MoltenEnterOutput<cr>", desc = "Molten: open output" },
     { "<leader>jh", "<cmd>MoltenHideOutput<cr>", desc = "Molten: hide output" },
     { "<leader>jd", "<cmd>MoltenDelete<cr>", desc = "Molten: delete cell" },
+    { "<leader>jD", "<cmd>MoltenDelete!<cr>", desc = "Molten: delete all outputs (keep kernel)" },
+    { "<leader>jr", "<cmd>MoltenRestart!<cr>", desc = "Molten: restart kernel + delete all outputs" },
     { "<leader>jx", "<cmd>MoltenInterrupt<cr>", desc = "Molten: interrupt kernel" },
   },
 }
