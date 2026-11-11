@@ -20,7 +20,9 @@ return {
     overrides = {
       buftype = {
         terminal = (function()
-          local only_math = { render_modes = { "nt" } }
+          -- No anti_conceal: the pane is read-only, and the cursor line showing
+          -- raw $...$ looked like math failing to render.
+          local only_math = { render_modes = { "nt" }, anti_conceal = { enabled = false } }
           for _, feature in ipairs({
             "bullet", "checkbox", "code", "dash", "heading", "html", "indent", "inline_highlight",
             "link", "paragraph", "pipe_table", "quote", "sign", "yaml",

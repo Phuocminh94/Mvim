@@ -400,9 +400,17 @@ local function rerender_markdown(buf)
   if not vim.b[buf].claude_markdown or win == -1 then
     return
   end
-  -- Nothing printed since the last time (same length, same tail): skip.
-  local count = vim.api.nvim_buf_line_count(buf)
-  local sig = count .. table.concat(vim.api.nvim_buf_get_lines(buf, math.max(count - 20, 0), -1, false), "\n")
+  -- Nothing changed in view since the last time: skip. The signature is the
+  -- visible text, not the buffer's tail: Claude Code repaints its answer in
+  -- place above an input box that ends up as it was, and a skipped pass leaves
+  -- the parser with the text it saw last (terminal output does not reach
+  -- treesitter's change tracking), so math stayed unrendered until the next one.
+  local first, last = vim.fn.line("w0", win) - 1, vim.fn.line("w$", win)
+  local sig = vim.api.nvim_buf_line_count(buf)
+    .. ":"
+    .. first
+    .. "\n"
+    .. table.concat(vim.api.nvim_buf_get_lines(buf, first, last, false), "\n")
   if vim.b[buf].claude_markdown_sig == sig then
     return
   end
@@ -412,7 +420,7 @@ local function rerender_markdown(buf)
     parser:invalidate(true)
     -- Only the visible lines (a full parse of a long session is ~90 ms);
     -- render-markdown parses the rest itself as you scroll to it.
-    parser:parse({ vim.fn.line("w0", win) - 1, vim.fn.line("w$", win) })
+    parser:parse({ first, last })
   end
   -- Internal module: the public API has no forced redraw of one buffer.
   pcall(function()
@@ -520,10 +528,21 @@ function M.setup_pane(buf)
       end
     end,
   })
+  -- No soft wrap: Claude Code already wraps its output at the pane width, and
+  -- nvim wraps by the source text, concealed part included. A line whose math is
+  -- drawn shorter than its $...$ source still overflowed and broke at the old
+  -- width, splitting a table row across two screen lines.
+  local function nowrap()
+    for _, win in ipairs(vim.fn.win_findbuf(buf)) do
+      vim.wo[win].wrap = false
+    end
+  end
+  nowrap()
   vim.api.nvim_create_autocmd("BufWinEnter", {
     group = group,
     buffer = buf,
     callback = function()
+      nowrap()
       rerender_markdown(buf)
     end,
   })
