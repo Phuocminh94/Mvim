@@ -132,11 +132,17 @@ function M.parse(ctx)
     end
   end
   convert(new)
-  local marks = {}
+  -- Added through render-markdown's Marks (internal module), as its builtin
+  -- handler does: that records each concealed range and inline text in the
+  -- buffer context, so a table measures ℤₙ and not the $\mathbb{Z}_n$ source.
+  local context = require("render-markdown.request.context").get(buf)
+  local marks = require("render-markdown.lib.marks").new(context, true)
   for _, f in ipairs(formulas) do
-    vim.list_extend(marks, marks_for(buf, f))
+    for _, m in ipairs(marks_for(buf, f)) do
+      marks:add(context.config.latex, "latex", m.start_row, m.start_col, m.opts)
+    end
   end
-  return marks
+  return marks:get()
 end
 
 return M
