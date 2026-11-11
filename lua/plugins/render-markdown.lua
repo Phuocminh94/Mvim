@@ -22,7 +22,14 @@ return {
         terminal = (function()
           -- No anti_conceal: the pane is read-only, and the cursor line showing
           -- raw $...$ looked like math failing to render.
-          local only_math = { render_modes = { "nt" }, anti_conceal = { enabled = false } }
+          -- Conceal stays on while Claude streams (Terminal mode): snacks.image
+          -- hides a $$ block's source under its picture by conceal, and with the
+          -- default 0 the end of each source line longer than the picture showed.
+          local only_math = {
+            render_modes = { "nt" },
+            anti_conceal = { enabled = false },
+            win_options = { conceallevel = { default = 2, rendered = 3 } },
+          }
           for _, feature in ipairs({
             "bullet", "checkbox", "code", "dash", "heading", "html", "indent", "inline_highlight",
             "link", "paragraph", "pipe_table", "quote", "sign", "yaml",

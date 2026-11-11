@@ -28,6 +28,21 @@ local STEPS = {
 }
 
 local HINT = "-- DAP step: n over  i into  o out  c continue  (other key exits) --"
+
+--- The next key, redrawing while it is awaited. A blocking getcharstr() does not
+--- redraw: the variables arrive after the stop, so the values dap-ui and the
+--- virtual text drew for it only showed with the next key, one step late (at
+--- the `if` of a loop's second pass, `i` still showed the first pass's value).
+local function next_key()
+  while vim.fn.getchar(1) == 0 do
+    local _, why = vim.wait(30) -- runs the callbacks that bring the variables
+    if why == -2 then
+      return "\3" -- <C-c> was taken by the wait; it still leaves step mode
+    end
+    vim.cmd.redraw()
+  end
+  return vim.fn.getcharstr()
+end
 local RUNNING = "-- DAP step: running to the next breakpoint (<C-c> leaves step mode) --"
 
 function M.step_mode()
@@ -48,7 +63,7 @@ function M.step_mode()
   while dap.session() do
     vim.cmd.redraw()
     vim.api.nvim_echo({ { HINT, "ModeMsg" } }, false, {})
-    local key = vim.fn.getcharstr()
+    local key = next_key()
     local step = STEPS[key]
     -- Focus changes (switching herdr pane or terminal window), mouse and other
     -- special keys arrive here too; they must not end step mode.
