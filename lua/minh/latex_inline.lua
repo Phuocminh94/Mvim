@@ -70,7 +70,7 @@ local function marks_for(buf, f)
     }
   end
   if f.sr == f.er then
-    return {
+    local marks = {
       {
         conceal = true,
         start_row = f.sr,
@@ -78,6 +78,22 @@ local function marks_for(buf, f)
         opts = { end_col = f.ec, conceal = "", virt_text = { { out, HL } }, virt_text_pos = "inline" },
       },
     }
+    -- Claude Code draws its tables as text (│ borders), each cell sized for the
+    -- $...$ source: give the columns hidden here back before the next border.
+    if vim.bo[buf].buftype == "terminal" then
+      local line = vim.api.nvim_buf_get_lines(buf, f.sr, f.sr + 1, false)[1] or ""
+      local border = line:find("│", f.ec + 1, true)
+      local lost = vim.fn.strdisplaywidth(line:sub(f.sc + 1, f.ec)) - vim.fn.strdisplaywidth(out)
+      if border and lost > 0 then
+        marks[2] = {
+          conceal = true,
+          start_row = f.sr,
+          start_col = border - 1,
+          opts = { virt_text = { { string.rep(" ", lost) } }, virt_text_pos = "inline" },
+        }
+      end
+    end
+    return marks
   end
   -- Spans lines: the result goes where it starts, each line hides its part.
   local text = vim.api.nvim_buf_get_lines(buf, f.sr, f.er + 1, false)
