@@ -15,7 +15,8 @@ secrets, private paths or personal data here.
 - `queries/latex/images.scm`: overrides snacks.nvim's query (no inline-formula images).
 - `bin/`: helper executables called by the config, found through
   `stdpath("config")`, not `$PATH` (`latex-inline`: inline LaTeX to one line of unicode).
-- `tests/`: `wrap_spec.lua` (unit, no plugins), `smoke.lua` (whole config headless).
+- `tests/`: `wrap_spec.lua` (unit, no plugins), `latex_inline_spec.py` (bin/latex-inline
+  input -> output; add a case for every fix), `smoke.lua` (whole config headless).
 
 ## Commands
 

@@ -43,6 +43,13 @@ SIZES = {
     s + t for s in ("big", "Big", "bigg", "Bigg") for t in ("", "l", "r", "m")
 }
 OPERATORS = set(" +-−=<>≤≥,/·⋅×±∓→↦∈∉⊂⊆∪∩∧∨")
+ONE_ARG = {
+    "mathbb", "mathcal", "mathfrak", "mathscr", "mathrm", "mathbf", "mathit",
+    "mathsf", "mathtt", "boldsymbol", "bm", "pmb", "text", "textbf", "textit",
+    "textrm", "textsf", "texttt", "emph", "hat", "widehat", "bar", "overline",
+    "underline", "tilde", "widetilde", "vec", "dot", "ddot", "acute", "grave",
+    "check", "breve", "overrightarrow", "overleftarrow",
+}
 # environment -> (left, right) delimiters of its one-line form
 ENVS = {
     "matrix": ("", ""), "smallmatrix": ("", ""), "pmatrix": ("(", ")"),
@@ -198,8 +205,12 @@ class Parser:
             return []
         if name in ("limits", "nolimits", "displaystyle", "textstyle", ","):
             return []
-        # Anything else (\alpha, \mathbb{R}, \text{...}, \hat{x}): utftex's job.
-        return [("tex", "\\" + name + self.raw_group())]
+        # Anything else is utftex's job, with its {argument} when it takes one
+        # (\mathbb{R}, \text{...}, \hat{x}); a symbol (\setminus, \alpha) does
+        # not, and a {u} after it is a set Claude Code printed without its \.
+        if name in ONE_ARG:
+            return [("tex", "\\" + name + self.raw_group())]
+        return [("tex", "\\" + name)]
 
     def seq(self, end=""):
         nodes = []
@@ -210,8 +221,15 @@ class Parser:
                 nodes += self.cmd(self.command())
             elif c == "{":
                 self.i += 1
-                nodes.append(("group", self.seq("}")))
+                inner = self.seq("}")
                 self.i += 1
+                # A bare group with no script after it: Claude Code prints the
+                # set braces \{ \} as { }, so draw them ({{u}, V\{u}}).
+                k = self.i
+                while k < len(self.s) and self.s[k] == " ":
+                    k += 1
+                script = k < len(self.s) and self.s[k] in "_^"
+                nodes.append(("group" if script or not inner else "braces", inner))
             elif c in "_^":
                 self.i += 1
                 nodes.append(("sub" if c == "_" else "sup", self.arg()))
@@ -269,6 +287,8 @@ def render(nodes, conv):
             pending = spaced(nodes, k + 1)
         elif kind == "group":
             out += render(n[1], conv)
+        elif kind == "braces":
+            out += "{" + render(n[1], conv) + "}"
         elif kind == "sub":
             out += script(render(n[1], conv), SUB, KEEP_BOTH, "_")
         elif kind == "sup":
@@ -296,7 +316,7 @@ def tex_nodes(nodes, out):
     for n in nodes:
         if n[0] == "tex":
             out.append(n)
-        elif n[0] in ("group", "sub", "sup"):
+        elif n[0] in ("group", "braces", "sub", "sup"):
             tex_nodes(n[1], out)
         elif n[0] in ("frac", "binom"):
             tex_nodes(n[1], out)
