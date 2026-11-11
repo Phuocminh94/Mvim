@@ -572,6 +572,10 @@ function M.toggle_markdown(quiet)
   end)
   vim.bo[buf].filetype = "markdown"
   vim.wo.spell = false -- the markdown FileType autocmd turns it on
+  -- The parser stays (render-markdown and snacks read it); its highlighter goes.
+  -- Claude Code already styled this text, and the markdown queries conceal
+  -- parts of it: `G.degree[u]` (backticks dropped by Claude) became G.degreeu.
+  vim.treesitter.stop(buf)
   M.setup_pane(buf)
   pcall(function()
     require("render-markdown").buf_enable()
