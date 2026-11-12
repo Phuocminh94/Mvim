@@ -3,7 +3,7 @@ return {
   ft = { "tex", "plaintex" },
   -- VimTeX reads its g: options when it loads, so set them in init.
   init = function()
-    vim.g.vimtex_view_method = vim.fn.has("mac") == 1 and "sioyek" or "zathura" -- no zathura on macOS
+    vim.g.vimtex_view_method = vim.fn.has("mac") == 1 and "skim" or "zathura" -- no zathura on macOS; sioyek's cask is disabled (fails Gatekeeper)
     vim.g.vimtex_compiler_method = "latexmk"
     vim.g.vimtex_compiler_latexmk = {
       executable = "latexmk",
