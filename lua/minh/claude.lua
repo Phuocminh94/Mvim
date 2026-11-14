@@ -460,6 +460,8 @@ local function watch_output(buf)
   })
 end
 
+local markdown_on -- defined below toggle_markdown()
+
 --- Keymaps and options of the pane's terminal buffer. Called on TermOpen and
 --- again after toggle_markdown(): filetype changes run ftplugins, and markdown's
 --- maps [[ ]] (its undo unmaps them), which would clobber the pane's own.
@@ -546,6 +548,26 @@ function M.setup_pane(buf)
       rerender_markdown(buf)
     end,
   })
+  -- When the pane's float was closed rather than hidden, <leader>ac has Snacks
+  -- open a new one, and Snacks sets the buffer's filetype back to
+  -- snacks_terminal: math stopped rendering with rendering still on. Make it
+  -- markdown again once Snacks is done.
+  vim.api.nvim_create_autocmd("FileType", {
+    group = group,
+    buffer = buf,
+    callback = function(args)
+      if args.match == "markdown" or not vim.b[buf].claude_markdown then
+        return
+      end
+      vim.schedule(function()
+        if vim.api.nvim_buf_is_valid(buf) and vim.b[buf].claude_markdown and vim.bo[buf].filetype ~= "markdown" then
+          markdown_on(buf)
+          vim.b[buf].claude_markdown_sig = nil -- BufWinEnter's pass ran without a parser
+          rerender_markdown(buf)
+        end
+      end)
+    end,
+  })
   -- Safety net for <C-o> above: if that map is ever missing, <C-o> jumps back
   -- to the working buffer. An empty jumplist leaves it nothing to jump to.
   -- Cause not confirmed (a bare nvim_open_win float starts with an empty
@@ -557,6 +579,37 @@ function M.setup_pane(buf)
       vim.cmd("clearjumps")
     end,
   })
+end
+
+--- Make the pane's buffer markdown for render-markdown and snacks.image (see
+--- toggle_markdown).
+function markdown_on(buf)
+  -- Loaded first: render-markdown only attaches on a FileType event it sees.
+  pcall(require("lazy").load, { plugins = { "render-markdown.nvim" } })
+  -- snacks.image creates its FileType autocmd on the first BufReadPre; in a
+  -- session that has only opened the pane, no file was read, so nothing would
+  -- attach images to the pane. setup() is idempotent.
+  pcall(function()
+    Snacks.image.setup()
+  end)
+  vim.bo[buf].filetype = "markdown"
+  for _, win in ipairs(vim.fn.win_findbuf(buf)) do
+    vim.wo[win].spell = false -- the markdown FileType autocmd turns it on
+  end
+  -- The parser stays (render-markdown and snacks read it); highlighting goes,
+  -- treesitter's and the regex syntax that stop() turns back on. Claude Code
+  -- already styled this text, and both conceal parts of it (backticks are
+  -- dropped by Claude): `G.degree[u]` became G.degreeu, `a.*.b` lost its *.
+  vim.treesitter.stop(buf)
+  vim.bo[buf].syntax = "OFF"
+  M.setup_pane(buf)
+  vim.api.nvim_buf_call(buf, function()
+    pcall(function()
+      require("render-markdown").buf_enable() -- acts on the current buffer
+    end)
+  end)
+  refresh_images(buf) -- a second time on: snacks is attached already, so redraw
+  watch_output(buf)
 end
 
 --- Toggle math rendering in the pane (`m` in its Normal mode): the terminal buffer
@@ -581,28 +634,7 @@ function M.toggle_markdown(quiet)
     return
   end
   vim.b[buf].claude_markdown = true
-  -- Loaded first: render-markdown only attaches on a FileType event it sees.
-  pcall(require("lazy").load, { plugins = { "render-markdown.nvim" } })
-  -- snacks.image creates its FileType autocmd on the first BufReadPre; in a
-  -- session that has only opened the pane, no file was read, so nothing would
-  -- attach images to the pane. setup() is idempotent.
-  pcall(function()
-    Snacks.image.setup()
-  end)
-  vim.bo[buf].filetype = "markdown"
-  vim.wo.spell = false -- the markdown FileType autocmd turns it on
-  -- The parser stays (render-markdown and snacks read it); highlighting goes,
-  -- treesitter's and the regex syntax that stop() turns back on. Claude Code
-  -- already styled this text, and both conceal parts of it (backticks are
-  -- dropped by Claude): `G.degree[u]` became G.degreeu, `a.*.b` lost its *.
-  vim.treesitter.stop(buf)
-  vim.bo[buf].syntax = "OFF"
-  M.setup_pane(buf)
-  pcall(function()
-    require("render-markdown").buf_enable()
-  end)
-  refresh_images(buf) -- a second time on: snacks is attached already, so redraw
-  watch_output(buf)
+  markdown_on(buf)
   if not quiet then
     vim.notify("Claude pane: math rendered (m: back to plain text)", vim.log.levels.INFO)
   end
