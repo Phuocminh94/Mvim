@@ -254,7 +254,8 @@ map({ "n", "x" }, "<leader>fm", function()
 end, "Format: file or selection")
 
 -- Toggle diagnostics (signs, virtual text and underline together)
-map("n", "<leader>ds", function()
+-- <leader>dd, not ds: ds is DAP's step mode (plugins/dap.lua).
+map("n", "<leader>dd", function()
   local enabled = not vim.diagnostic.is_enabled()
   vim.diagnostic.enable(enabled)
   vim.notify("Diagnostics: " .. (enabled and "ON" or "OFF"), vim.log.levels.INFO)
