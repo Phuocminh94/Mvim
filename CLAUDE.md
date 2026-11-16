@@ -32,7 +32,7 @@ secrets, private paths or personal data here.
   and turns `\ ` into a row break in matrices, as Claude Code's terminal
   renderer prints `\\` as `\`.
 - macOS: `brew install utftex`; BasicTeX needs `sudo tlmgr install standalone
-  preview etoolbox mathtools xcolor vntex` (the dotfiles installer does both).
+  preview etoolbox mathtools xcolor vntex underscore` (the dotfiles installer does both).
 - Formula images are cached in `~/.cache/nvim/snacks/image/`; delete the
   `*.math.*` files after changing the template.
 - Claude pane: math rendering is on from the start (`m` toggles; set

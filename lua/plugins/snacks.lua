@@ -159,12 +159,15 @@ return {
           -- pane. T5 fontenc (vntex, in texlive-langother) for Vietnamese in
           -- \text{}. And `\ ` becomes a row break inside matrix-like environments:
           -- Claude Code's own markdown renderer prints `\\` as `\`, so the rows of
-          -- a pmatrix would otherwise all collapse into one.
+          -- a pmatrix would otherwise all collapse into one. Plain `varwidth` caps
+          -- the page at \linewidth (~390pt), which cut a long formula's right end
+          -- off; \maxdimen lets the page grow to the formula. `underscore` prints
+          -- the _ of names like `order_item` inside \text{} instead of erroring.
           tpl = [[
-        \documentclass[preview,border=0pt,varwidth,12pt]{standalone}
+        \documentclass[preview,border=0pt,varwidth=\maxdimen,12pt]{standalone}
         \usepackage[T5]{fontenc}
         \usepackage{${packages}}
-        \usepackage{xcolor, etoolbox}
+        \usepackage{xcolor, etoolbox, underscore}
         \newcommand{\snacksrows}[1]{\AtBeginEnvironment{#1}{\def\ {\\}}}
         \forcsvlist{\snacksrows}{matrix,pmatrix,bmatrix,Bmatrix,vmatrix,Vmatrix,smallmatrix,cases,aligned,gathered,split,array}
         \begin{document}
