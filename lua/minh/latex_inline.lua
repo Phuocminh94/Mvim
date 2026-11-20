@@ -335,6 +335,13 @@ function M.parse(ctx)
   end
   if not skip and not text:match("^%$%$") then
     local sr, sc, er, ec = ctx.root:range()
+    -- Pandoc's rule, as for table cells: treesitter pairs any two $, so
+    -- `psql $env:X` ... `thay $env:X` (PowerShell) became one formula.
+    local after = (vim.api.nvim_buf_get_lines(buf, er, er + 1, false)[1] or ""):sub(ec + 1, ec + 1)
+    skip = text:match("^%$%s") ~= nil or text:match("%s%$$") ~= nil or after:match("%d") ~= nil
+  end
+  if not skip and not text:match("^%$%$") then
+    local sr, sc, er, ec = ctx.root:range()
     local input = vim.trim(text:match("^%$*(.-)%$*$") or text)
     if input ~= "" then
       table.insert(pending[buf], { sr = sr, sc = sc, er = er, ec = ec, input = input })
