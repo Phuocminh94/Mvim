@@ -9,6 +9,8 @@ secrets, private paths or personal data here.
 - `lua/minh/`: own modules (options, keymaps, autocmds, statusline, tabline,
   theme, `claude.lua` = Claude Code pane in nvim, `latex_inline.lua` =
   render-markdown handler for inline math).
+- `lua/minh/unicode.lua` (+ `unicode_data.lua`): insert-mode `/gamma<Space>` -> γ (`<C-]>`: no
+  space), prose filetypes only; names follow LaTeX, capital Greek `//gamma`, `/^2`, `/_0`.
 - `lua/minh/local_config.lua`: per-machine settings, git-ignored.
 - `lua/plugins/`: one lazy.nvim spec per file.
 - `lua/snippets/`, `after/ftplugin/`, `after/lsp/`: snippets, filetype and LSP overrides.

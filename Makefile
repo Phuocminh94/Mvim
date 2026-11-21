@@ -8,6 +8,7 @@ test: fmt-check unit smoke
 # lua/minh/wrap.lua, no plugins; bin/latex-inline (skipped without utftex)
 unit:
 	nvim --clean --headless -l tests/wrap_spec.lua
+	nvim --clean --headless -l tests/unicode_spec.lua
 	python3 -I tests/latex_inline_spec.py
 
 # the whole config, headless, every plugin loaded
