@@ -57,6 +57,23 @@ local function lsp_references()
   end
 end
 
+-- Snacks pickers link to NormalFloat, which the transparency overrides below
+-- clear, so the list floated over the code with nothing around it. A solid
+-- panel a little lighter than Normal.bg sets them apart. Snacks defines these
+-- groups with `default`, so they keep what is set here. Must run before the
+-- transparency overrides clear Normal.bg.
+local function picker()
+  local normal = get("Normal")
+  if not (normal.bg and normal.fg) then
+    return
+  end
+  local panel = M.blend(normal.bg, normal.fg, 0.03)
+  local border, title = get("FloatBorder"), get("FloatTitle")
+  api.nvim_set_hl(0, "SnacksPicker", { bg = panel })
+  api.nvim_set_hl(0, "SnacksPickerBorder", { fg = border.fg, bg = panel })
+  api.nvim_set_hl(0, "SnacksPickerTitle", { fg = title.fg, bg = panel, bold = title.bold })
+end
+
 -- Groups used by minh.statusline: the theme's own StatusLine colors, so the
 -- bar looks like a plain statusline; only the mode and cwd get an accent.
 -- colors/neovim.vim defines its own St_* groups, so leave those alone.
@@ -91,6 +108,7 @@ end
 function M.apply()
   colorcolumn()
   lsp_references()
+  picker()
   statusline()
   transparency()
 end
