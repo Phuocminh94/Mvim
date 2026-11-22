@@ -81,6 +81,39 @@ return {
     },
 
     picker = {
+      -- LSP pickers sit full width along the bottom (snacks' ivy) so the preview is
+      -- wide enough to read; ivy's preview (0.6) widened so the list stays short.
+      layouts = {
+        lsp_ivy = {
+          layout = {
+            box = "vertical",
+            backdrop = false,
+            row = -1,
+            width = 0,
+            height = 0.4,
+            border = "top",
+            title = " {title} {live} {flags}",
+            title_pos = "left",
+            { win = "input", height = 1, border = "bottom" },
+            {
+              box = "horizontal",
+              { win = "list", border = "none" },
+              { win = "preview", title = "{preview}", width = 0.65, border = "left" },
+            },
+          },
+        },
+      },
+      sources = {
+        lsp_definitions = { layout = "lsp_ivy" },
+        lsp_declarations = { layout = "lsp_ivy" },
+        lsp_implementations = { layout = "lsp_ivy" },
+        lsp_references = { layout = "lsp_ivy" },
+        lsp_type_definitions = { layout = "lsp_ivy" },
+        lsp_incoming_calls = { layout = "lsp_ivy" },
+        lsp_outgoing_calls = { layout = "lsp_ivy" },
+        lsp_symbols = { layout = "lsp_ivy" },
+        lsp_workspace_symbols = { layout = "lsp_ivy" },
+      },
       win = {
         input = {
           keys = {
