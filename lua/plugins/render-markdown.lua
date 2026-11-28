@@ -26,7 +26,11 @@ return {
           -- hides a $$ block's source under its picture by conceal, and with the
           -- default 0 the end of each source line longer than the picture showed.
           local only_math = {
-            render_modes = { "nt" },
+            -- "t" too: minh.claude redraws 500 ms after output stops, and in
+            -- Terminal mode that pass cleared inline math ($$ images stayed).
+            -- render-markdown has no TextChangedT event, so streaming output
+            -- does not make it redraw on its own.
+            render_modes = { "nt", "t" },
             anti_conceal = { enabled = false },
             win_options = { conceallevel = { default = 2, rendered = 3 } },
           }
