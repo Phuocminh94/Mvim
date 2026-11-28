@@ -12,6 +12,7 @@ import re
 import shutil
 import subprocess
 import sys
+import unicodedata
 
 SEP = "␞"  # utftex passes it through untouched
 
@@ -25,6 +26,9 @@ SUB = dict(zip(
 ))
 KEEP_SUP = set("′″‴*∗†‡")  # already look raised
 KEEP_BOTH = set(", ")
+LONG_ARROWS = {
+    "⟺": "⇔", "⟹": "⇒", "⟸": "⇐", "⟷": "↔", "⟶": "→", "⟵": "←", "⟼": "↦",
+}
 
 FRACS = {"frac", "dfrac", "tfrac", "cfrac"}
 BINOMS = {"binom", "dbinom", "tbinom"}
@@ -209,7 +213,17 @@ class Parser:
         # (\mathbb{R}, \text{...}, \hat{x}); a symbol (\setminus, \alpha) does
         # not, and a {u} after it is a set Claude Code printed without its \.
         if name in ONE_ARG:
-            return [("tex", "\\" + name + self.raw_group())]
+            group = self.raw_group()
+            if not group and self.peek():
+                # \hat1, \hat x: TeX takes one token as the argument; passing
+                # \hat alone left utftex a bare accent, drawn before the 1.
+                if self.peek() == "\\":
+                    self.i += 1
+                    group = "{\\" + self.command() + "}"
+                else:
+                    self.i += 1
+                    group = "{" + self.s[self.i - 1] + "}"
+            return [("tex", "\\" + name + group)]
         return [("tex", "\\" + name)]
 
     def seq(self, end=""):
@@ -241,9 +255,12 @@ class Parser:
 
 def script(text, table, keep, mark):
     """text as sub/superscript characters, or mark(text) when one has none."""
-    if all(c in table or c in keep for c in text):
+    # a combining accent (\hat1 -> 1̂) stays on the lowered character: T₁̂
+    if all(c in table or c in keep or unicodedata.combining(c) for c in text):
         return "".join(table.get(c, c) for c in text)
-    return mark + (text if len(text) == 1 else "(" + text + ")")
+    # 1̂ is one character plus a combining accent: T_1̂, not T_(1̂)
+    single = sum(not unicodedata.combining(c) for c in text) == 1
+    return mark + (text if single else "(" + text + ")")
 
 
 def atomic(text, denominator=False):
@@ -353,6 +370,11 @@ def main():
     out = render(tree, conv)
     # Factorial then equals (9!=362880): ligature fonts draw "!=" as ≠.
     out = out.replace("!=", "! = ")
+    # Long arrows (\iff -> ⟺) count as one cell but fonts draw them two wide,
+    # over the next character: use the short arrow, spaced as TeX spaces \iff.
+    for long, short in LONG_ARROWS.items():
+        out = re.sub(" *" + long + " *", " " + short + " ", out)
+    out = out.strip(" ")
     sys.stdout.write(out + "\n")
     return 0
 

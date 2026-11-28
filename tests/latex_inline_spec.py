@@ -52,6 +52,14 @@ CASES = [
     (r"M=I-tA", "M=I-tA"),
     (r"\text{bỏ hàng } a", "bỏ hàng a"),
     (r"\hat{x}+\vec{v}", None),  # utftex's own drawing; only checked to be one line
+    # accent on one token, no braces (\hat1): T₁̂, not T_(̂1)
+    (r"\varphi(T_{\hat1})", "𝜑(T₁̂)"),
+    (r"T_{\tilde 1}", "T₁̃"),
+    (r"T_{\hat b}", "T_b̂"),  # b has no subscript form
+    # long arrows are drawn two cells wide over the next character: short ones
+    (r"f(a)=0\iff(t-a)\mid f", "f(a)=0 ⇔ (t-a)|f"),
+    (r"a\implies b", "a ⇒ b"),
+    (r"x\longmapsto y", "x ↦ y"),
     # matrices: rows broken by \\ or, after Claude Code, by "\ "
     (r"\begin{pmatrix}1&-t\ -t&1\end{pmatrix}", "(1  -t; -t  1)"),
     (r"\begin{pmatrix}1&-t\\ -t&1\end{pmatrix}", "(1  -t; -t  1)"),
